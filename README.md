@@ -12,9 +12,15 @@ As well as:
 
 ## TODO
 
-- Hello ping RPC
+x Protobuf RPC scaffold
+x Hello ping RPC
 
 ## Setup
 
 `nimble intall https://github.com/oswjk/nimtwirp`
 `make`
+
+## Running
+
+`./bin/server`
+`./bin/client`

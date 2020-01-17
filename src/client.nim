@@ -1,4 +1,6 @@
 import os
+import strformat
+import strutils
 
 import service_pb
 import service_twirp
@@ -13,7 +15,7 @@ import service_twirp
 
 # Use protobufs for RPC, a la remote log
 
-echo "hi"
+echo "Starting client"
 
 var pingRequest = dht_PingRequest()
 
@@ -23,6 +25,13 @@ except:
   echo("invalid id")
   quit(QuitFailure)
 
-echo pingRequest.id
+echo("Making a ping request with id ", pingRequest.id)
 
-# Send Ping request
+let client = newDHTServiceClient("http://localhost:8000")
+
+try:
+  let pingResp = Ping(client, pingRequest)
+  echo(&"I got a pong: {pingResp.id}")
+except Exception as e:
+  echo(&"error: {e.msg}")
+
