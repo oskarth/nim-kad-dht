@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package dht;
+
+service DHTService {
+  rpc Ping(PingRequest) returns (PingResponse);
+}
+
+message PingRequest {
+  int32 id = 1;
+}
+
+message PingResponse {
+  int32 id = 1;
+}
