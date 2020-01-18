@@ -18,6 +18,13 @@ As well as:
 - x Distance fn
 - x Kbuckets
 
+- Contact with address
+- Kbucket max size and LRU
+- Mock RPCs for store/findnode/findvalue
+- Node lookup logic
+- Hookup Kademlia to client/server
+- Join network logic
+
 ## Setup
 
 ```
