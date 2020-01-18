@@ -12,18 +12,22 @@ As well as:
 
 ## TODO
 
-x Protobuf RPC scaffold
-x Hello ping RPC
-x NodeID
-x Distance fn
-x Kbuckets
+- x Protobuf RPC scaffold
+- x Hello ping RPC
+- x NodeID
+- x Distance fn
+- x Kbuckets
 
 ## Setup
 
-`nimble intall https://github.com/oswjk/nimtwirp`
-`make`
+```
+nimble intall https://github.com/oswjk/nimtwirp
+make
+```
 
 ## Running
 
-`./bin/server`
-`./bin/client`
+```
+./bin/server
+./bin/client
+```
