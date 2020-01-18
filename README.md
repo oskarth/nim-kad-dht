@@ -14,6 +14,9 @@ As well as:
 
 x Protobuf RPC scaffold
 x Hello ping RPC
+x NodeID
+x Distance fn
+x Kbuckets
 
 ## Setup
 
