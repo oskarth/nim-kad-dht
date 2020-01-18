@@ -102,20 +102,30 @@ proc newNode(self: NodeID): ref Node =
 #  kbs[i].add(c)
 #
 
-# Join logic, how does it work? From http://xlattice.sourceforge.net/components/protocol/kademlia/specs.html
-#
-#A node joins the network as follows:
-#
-#    if it does not already have a nodeID n, it generates one
-#    it inserts the value of some known node c into the appropriate bucket as its first contact
-#    it does an iterativeFindNode for n
-#    it refreshes all buckets further away than its closest neighbor, which will be in the occupied bucket with the lowest index.
-#
-#If the node saved a list of good contacts and used one of these as the "known node" it would be consistent with this protocol.
-#
-#
-
 # Node lookup
+# TODO: HERE ATM, mocking this
+#
+# Lets assume contact has kademlia connectivity, or atleast some nodes to give us
+proc iterativeFindNode(node: ref Node, n: NodeID) =
+  # First, find bucket with closest node (only 1 contact for now
+  # Then all FIND_NODE(n) rpc
+  # Select the first alpha (to start with 1)  contacts
+  # Which bucket should we start to look in?
+  echo("dist ", distance(node.self, n))
+  # IF we were to find the node, which bucket would it be in?
+  var candidate = which_kbucket(node, n)
+  echo("which kbucket? ", which_kbucket(node, n))
+  # This will return -1 as it is yourself
+  if candidate == -1:
+    # look in first bucket, then second etc
+    # if this is a middle bucket then we need to branch out left and right (I think?)
+    # TODO: HEREATM: Need to revisit this logic
+    #
+    # Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
+    # To start with lets assume our contact has Kademlia connectivity and we want it to
+
+  echo("FIND NODE ", n)
+  # When response, call again (?)
 
 # Join logic
 #------------------------------------------------------------------------------
@@ -127,3 +137,8 @@ var node = newNode(genNodeIDByInt(0))
 var n1 = genNodeIDByInt(4) # third bucket
 AddContact(node, n1, "")
 echo node
+
+# TODO 3. iterativeFindNode(n) (where n is n.self)
+iterativeFindNode(node, node.self)
+
+# TODO: 4. Refresh buckets further away

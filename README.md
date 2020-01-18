@@ -17,24 +17,30 @@ As well as:
 - x NodeID
 - x Distance fn
 - x Kbuckets
+- x Contact with address empty
 
-- Contact with address
+- Contact with actual address (e.g. localhost port n)
 - Kbucket max size and LRU
 - Mock RPCs for store/findnode/findvalue
 - Node lookup logic
 - Hookup Kademlia to client/server
 - Join network logic
+- Make NodeID random based on seed
 
 ## Setup
 
 ```
 nimble intall https://github.com/oswjk/nimtwirp
-make
 ```
 
 ## Running
 
 ```
+# RPC test
+make
 ./bin/server
 ./bin/client
+
+# For Kademlia logic only
+nim c -r src/kademlia.nim
 ```
