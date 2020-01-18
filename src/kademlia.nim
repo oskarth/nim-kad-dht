@@ -23,6 +23,9 @@ type
     address*: string
   KBucket = seq[Contact] # max k items
   KBuckets = array[b, KBucket]
+  Node = object
+    self: NodeID
+    kbuckets: KBuckets
 
 # XXX: How does random seed work? Seem to get same number here every run
 #proc genRandomNodeID(): NodeID =
@@ -47,27 +50,14 @@ proc distance(a: NodeID, b: NodeID): NodeID =
   for i in 0..<result.len:
     result[i] = a[i] xor b[i]
 
-# Running stuff
-#------------------------------------------------------------------------------
-#
+proc `$`(n: ref Node): string =
+  var res = "Self (" & $n.self & "):\n--------------------\n"
+  for i in 0..<n.kbuckets.len:
+    res = res & $"bucket " & $i & $": " & $n.kbuckets[i] & "\n"
+  return res
 
-var an = genNodeIDByInt(0)
-var bn = genNodeIDByInt(1)
-var cn = genNodeIDByInt(2)
-var dn = genNodeIDByInt(3)
-var en = genNodeIDByInt(4)
-var fn = genNodeIDByInt(5)
-var gn = genNodeIDByInt(6)
-var hn = genNodeIDByInt(7)
-
-var an_nodes = [bn, cn, dn, en, fn, gn, hn]
-
-# XXX: Ugly globals
-#var kb: KBucket
-var kbs: KBuckets
-
-proc which_kbucket(self: NodeID, contact: NodeID): int =
-  var d = distance(self, contact)
+proc which_kbucket(node: ref Node, contact: NodeID): int =
+  var d = distance(node.self, contact)
   # Assuming bigendian, return most significant bit position
   for i in 0..<d.len:
     if d[i] == 1:
@@ -75,23 +65,42 @@ proc which_kbucket(self: NodeID, contact: NodeID): int =
   # Self, not really a bucket
   return -1
 
-# XXX: Assuming an self and that kb isn't full
-proc AddContact(nodeid: NodeID, address: string) =
+# XXX: Assuming kb isn't full
+proc AddContact(node: ref Node, nodeid: NodeID, address: string) =
   var c = Contact(id: nodeid, address: "")
-  var i = which_kbucket(an, c.id)
-  kbs[i].add(c)
+  var i = which_kbucket(node, c.id)
+  node.kbuckets[i].add(c)
 
-for id in an_nodes:
-  AddContact(id, "")
+proc newNode(self: NodeID): ref Node =
+  var kbs: KBuckets
+  new(result)
+  result.self = self
+  result.kbuckets = kbs
+
+# Running stuff
+#------------------------------------------------------------------------------
+#
+
+#var an = genNodeIDByInt(0)
+#var bn = genNodeIDByInt(1)
+#var cn = genNodeIDByInt(2)
+#var dn = genNodeIDByInt(3)
+#var en = genNodeIDByInt(4)
+#var fn = genNodeIDByInt(5)
+#var gn = genNodeIDByInt(6)
+#var hn = genNodeIDByInt(7)
+#
+#var an_nodes = [bn, cn, dn, en, fn, gn, hn]
+#
+
+#for id in an_nodes:
+#  AddContact(id, "")
 
 # TODO: Max 20 (e.g.) contacts in a key bucket; need eviction policy
 #for c in an_contacts:
 #  var i = which_kbucket(an, c)
 #  kbs[i].add(c)
 #
-echo("Keybuckets content for node a (self):")
-for i in 0..<kbs.len:
-  echo("bucket ", i, ": ", kbs[i])
 
 # Join logic, how does it work? From http://xlattice.sourceforge.net/components/protocol/kademlia/specs.html
 #
@@ -106,5 +115,15 @@ for i in 0..<kbs.len:
 #
 #
 
-
 # Node lookup
+
+# Join logic
+#------------------------------------------------------------------------------
+
+# 1. Generate node ID
+var node = newNode(genNodeIDByInt(0))
+
+# 2. Add known node contact c into appropriate bucket
+var n1 = genNodeIDByInt(4) # third bucket
+AddContact(node, n1, "")
+echo node
