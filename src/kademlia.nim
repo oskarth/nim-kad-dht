@@ -106,11 +106,20 @@ proc newNode(self: NodeID): ref Node =
 #
 
 # Node lookup
+# XXX: moving up declaration to mock RPC (hardcoded hack)
+var bob = newNode(genNodeIDByInt(6))
 
-proc mockFindNode(s: string): Future[string] {.async.} =
-  echo ("mockFindNode, sleeping")
+# Mocking RPC to node asking for FIND_NODE(id)
+# Returns up to k contacts
+proc mockFindNode(node: ref Node, nodeid: NodeID): Future[seq[Contact]] {.async.} =
+  echo("mockFindNode, I am ", node.self, " what k-triplets close to ", nodeid)
+  var bi = which_kbucket(node, nodeid)
+  var kbucket = node.kbuckets[bi]
+  echo("closest kbucket is bucket ", bi, " with ", kbucket)
   os.sleep(1000)
-  result = "ok"
+  # TODO: If there aren't k contacts in that bucket, we should return adjacent buckets
+  # TODO: HERE ATM, k>2 case
+  return kbucket
 
 # > The search begins by selecting alpha contacts from the non-empty k-bucket closest to the bucket appropriate to the key being searched on. 
 # XXX: Not convinced it is closest to bucket for other choices of n.
@@ -130,15 +139,11 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
 
   var closestNode = candidate
   var shortlist: Shortlist = [candidate]
-  # Send parallel async FIND_NODE reqs here
-  # XXX: This should be parallel
-  var resp = await mockFindNode(candidate, n)
+  # TODO: Send parallel async FIND_NODE reqs here
+  # XXX: Hardcode bob here, normally it'd look up candidate network address and then call proc
+  var resp = await mockFindNode(bob, n)
   echo("RESP ", resp)
-  # Lets mock with a simple timeout
-  # If a contact is live, it should return k triples
-  # We add these contacts to shortlist
-  # Etc
-  # Why does it return k triplets?
+  # TODO: Add to shortlist and keep going
 
 # Join logic
 #------------------------------------------------------------------------------
@@ -146,7 +151,6 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
 # Second example: Bob is 110 (6) and has full connectivity
 # Already part of network
 echo("Bob time - Kademlia connectivity")
-var bob = newNode(genNodeIDByInt(6))
 var n2 = genNodeIDByInt(7) # 111
 var n3 = genNodeIDByInt(5) # 101
 var n4 = genNodeIDByInt(3) # 011
