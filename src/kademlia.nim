@@ -103,29 +103,21 @@ proc newNode(self: NodeID): ref Node =
 #
 
 # Node lookup
-# TODO: HERE ATM, mocking this
+# XXX: I think logic is wrong when it comes to finding other types of nodes,
+# it is also not iterative.
 #
-# Lets assume contact has kademlia connectivity, or atleast some nodes to give us
+# TODO: Generalize to picking alpha candidates
 proc iterativeFindNode(node: ref Node, n: NodeID) =
-  # First, find bucket with closest node (only 1 contact for now
-  # Then all FIND_NODE(n) rpc
-  # Select the first alpha (to start with 1)  contacts
-  # Which bucket should we start to look in?
-  echo("dist ", distance(node.self, n))
-  # IF we were to find the node, which bucket would it be in?
-  var candidate = which_kbucket(node, n)
-  echo("which kbucket? ", which_kbucket(node, n))
-  # This will return -1 as it is yourself
-  if candidate == -1:
-    # look in first bucket, then second etc
-    # if this is a middle bucket then we need to branch out left and right (I think?)
-    # TODO: HEREATM: Need to revisit this logic
-    #
-    # Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
-    # To start with lets assume our contact has Kademlia connectivity and we want it to
+  echo("iterativeFindNode ", node.self, " ", n, " distance ", distance(node.self, n))
+  var candidate: Contact
+  var bucket_index = which_kbucket(node, n)
 
-  echo("FIND NODE ", n)
-  # When response, call again (?)
+  for i in 0..node.kbuckets.len - 1:
+    if node.kbuckets[i].len != 0:
+      candidate = node.kbuckets[i][0]
+      break
+  # TODO: FIND_NODE(n) RPC
+  echo("Found candidate: ", candidate)
 
 # Join logic
 #------------------------------------------------------------------------------
@@ -140,5 +132,11 @@ echo node
 
 # TODO 3. iterativeFindNode(n) (where n is n.self)
 iterativeFindNode(node, node.self)
+# TODO: HEREATM: Need to revisit this logic
+#
+# Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
+# To start with lets assume our contact has Kademlia connectivity and we want it to
+
 
 # TODO: 4. Refresh buckets further away
+#
