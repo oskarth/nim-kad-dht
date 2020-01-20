@@ -1,10 +1,12 @@
 #import random
 #import math
+import asyncdispatch
 import strutils
+import os
 
 const
   # XXX: These values are used for testing
-  #alpha = 1
+  alpha = 1
   b = 3
 
   #alpha = 3 # degree of parallelism in network calls
@@ -23,6 +25,7 @@ type
     address*: string
   KBucket = seq[Contact] # max k items
   KBuckets = array[b, KBucket]
+  ShortList = array[alpha, Contact]
   Node = object
     self: NodeID
     kbuckets: KBuckets
@@ -103,11 +106,18 @@ proc newNode(self: NodeID): ref Node =
 #
 
 # Node lookup
-# XXX: I think logic is wrong when it comes to finding other types of nodes,
-# it is also not iterative.
+
+proc mockFindNode(s: string): Future[string] {.async.} =
+  echo ("mockFindNode, sleeping")
+  os.sleep(1000)
+  result = "ok"
+
+# > The search begins by selecting alpha contacts from the non-empty k-bucket closest to the bucket appropriate to the key being searched on. 
+# XXX: Not convinced it is closest to bucket for other choices of n.
+# TODO: Pick alpha candidates
 #
-# TODO: Generalize to picking alpha candidates
-proc iterativeFindNode(node: ref Node, n: NodeID) =
+# > The contact closest to the target key, closestNode, is noted.
+proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   echo("iterativeFindNode ", node.self, " ", n, " distance ", distance(node.self, n))
   var candidate: Contact
   var bucket_index = which_kbucket(node, n)
@@ -116,8 +126,18 @@ proc iterativeFindNode(node: ref Node, n: NodeID) =
     if node.kbuckets[i].len != 0:
       candidate = node.kbuckets[i][0]
       break
-  # TODO: FIND_NODE(n) RPC
   echo("Found candidate: ", candidate)
+
+  var closestNode = candidate
+  var shortlist: Shortlist = [candidate]
+  # Send parallel async FIND_NODE reqs here
+  # XXX: This should be parallel
+  var resp = await mockFindNode("xxx")
+  echo("RESP ", resp)
+  # Lets mock with a simple timeout
+  # If a contact is live, it should return k triples
+  # We add these contacts to shortlist
+  # Etc
 
 # Join logic
 #------------------------------------------------------------------------------
@@ -131,7 +151,7 @@ AddContact(node, n1, "")
 echo node
 
 # TODO 3. iterativeFindNode(n) (where n is n.self)
-iterativeFindNode(node, node.self)
+discard iterativeFindNode(node, node.self)
 # TODO: HEREATM: Need to revisit this logic
 #
 # Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
