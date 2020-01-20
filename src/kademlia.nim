@@ -132,21 +132,34 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   var shortlist: Shortlist = [candidate]
   # Send parallel async FIND_NODE reqs here
   # XXX: This should be parallel
-  var resp = await mockFindNode("xxx")
+  var resp = await mockFindNode(candidate, n)
   echo("RESP ", resp)
   # Lets mock with a simple timeout
   # If a contact is live, it should return k triples
   # We add these contacts to shortlist
   # Etc
+  # Why does it return k triplets?
 
 # Join logic
 #------------------------------------------------------------------------------
+
+# Second example: Bob is 110 (6) and has full connectivity
+# Already part of network
+echo("Bob time - Kademlia connectivity")
+var bob = newNode(genNodeIDByInt(6))
+var n2 = genNodeIDByInt(7) # 111
+var n3 = genNodeIDByInt(5) # 101
+var n4 = genNodeIDByInt(3) # 011
+AddContact(bob, n2, "")
+AddContact(bob, n3, "")
+AddContact(bob, n4, "")
+echo bob
 
 # 1. Generate node ID
 var node = newNode(genNodeIDByInt(0))
 
 # 2. Add known node contact c into appropriate bucket
-var n1 = genNodeIDByInt(4) # third bucket
+var n1 = genNodeIDByInt(6) # third bucket
 AddContact(node, n1, "")
 echo node
 
@@ -159,4 +172,5 @@ discard iterativeFindNode(node, node.self)
 
 
 # TODO: 4. Refresh buckets further away
+#
 #

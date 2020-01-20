@@ -10,6 +10,13 @@ As well as:
 - Hopefully useful for Vac/protocol efforts
 - Hopefully useful for libp2p efforts
 
+It also ties into ideas such as:
+- Discovery v5
+- Resource restricted devices
+- Efficient routing (classical vs forwarding)
+- Service oriented p2p architecture
+- Accounting for resources
+
 ## TODO
 
 - x Protobuf RPC scaffold
