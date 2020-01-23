@@ -148,6 +148,12 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   echo("RESP ", resp)
   # TODO: Add to shortlist and keep going
 
+proc nodeHasKademliaConnectivity(n: ref Node): bool =
+  for kb in n.kbuckets:
+    if kb.len == 0:
+      return false
+  return true
+
 # Join logic
 #------------------------------------------------------------------------------
 
@@ -162,6 +168,7 @@ AddContact(bob, n2, "")
 AddContact(bob, n3, "")
 AddContact(bob, n4, "")
 AddContact(bob, n5, "")
+echo("Bob connected? ", nodeHasKademliaConnectivity(bob))
 echo bob
 
 # 1. Generate node ID
