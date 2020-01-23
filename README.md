@@ -25,13 +25,14 @@ It also ties into ideas such as:
 - x Distance fn
 - x Kbuckets
 - x Contact with address empty
+- x Mock Findnode
 
 - Contact with actual address (e.g. localhost port n)
 - Kbucket max size and LRU
-- Mock RPCs for store/findnode/findvalue
-- Node lookup logic
+- Mock RPCs for store/findnode/findvalue (partial)
+- Node lookup logic (partial)
 - Hookup Kademlia to client/server
-- Join network logic
+- Join network logic (partial)
 - Make NodeID random based on seed
 
 ## Setup
