@@ -1,5 +1,6 @@
 #import random
 #import math
+import algorithm
 import asyncdispatch
 import strutils
 import os
@@ -24,6 +25,7 @@ type
   Contact* = object
     id*: NodeID
     address*: string
+  Contacts = seq[Contact] # no limit, convenience type
   KBucket = seq[Contact] # max k items
   KBuckets = array[b, KBucket]
   ShortList = array[alpha, Contact]
@@ -55,6 +57,14 @@ proc `$`(n: NodeID): string =
 proc distance(a: NodeID, b: NodeID): NodeID = 
   for i in 0..<result.len:
     result[i] = a[i] xor b[i]
+
+proc `<`(a, b: NodeID): bool =
+  for i in 0..<a.len:
+    if a[i] < b[i]:
+      return true
+    if b[i] < a[i]:
+      return false
+  return false
 
 proc nodeHasKademliaConnectivity(n: ref Node): bool =
   for kb in n.kbuckets:
@@ -127,17 +137,37 @@ var bob = newNode("Bob", genNodeIDByInt(6))
 
 # Mocking RPC to node asking for FIND_NODE(id)
 # Returns up to k contacts
-proc mockFindNode(node: ref Node, nodeid: NodeID): Future[seq[Contact]] {.async.} =
-  echo("mockFindNode, I am ", node.id, " what k-triplets close to ", nodeid)
-  var bi = which_kbucket(node, nodeid)
-  var kbucket = node.kbuckets[bi]
-  echo("closest kbucket is bucket ", bi, " with ", kbucket)
+proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.async.} =
+  echo("[Bob] mockFindNode: looking for up to k=", k, " contacts closest to: ", targetid)
+  # Simulating some RPC latency
   os.sleep(1000)
-  # TODO: If there aren't k contacts in that bucket, we should return adjacent buckets
-  # TODO: HERE ATM, k=2 case
-  # QQQ
-  # We should return more nodes here, does it make sense to extend? Lets do k=2
-  return kbucket
+
+  # Find up to k closest nodes to target
+  #
+  # NOTE: Bruteforcing my sorting all contacts, not efficient but least error-prone for now.
+  # TODO: Make this more efficient, sketch (might be wrong, verify):
+  # 0) If reach k contacts at any point, return
+  # 1) Look in kb=which_kbucket(node, targetid)
+  # 2) Then traverse backward from kb to key bucket 0
+  # 3) If still not reached k, go upwards in kbucket from kb+1
+  # 4) If still not k contacts, return anyway
+  # Look at other implementations to see how this is done
+  var contacts: seq[Contact]
+  for kb in node.kbuckets:
+    for contact in kb:
+      contacts.add(contact)
+
+  proc distCmp(x, y: Contact): int =
+    if distance(x.id, targetid) < distance(y.id, targetid): -1 else: 1
+
+  contacts.sort(distCmp)
+  var res: seq[Contact]
+  for c in contacts:
+    if res.len == k:
+      break
+    res.add(c)
+  echo("[Bob] Found up to k contacts: ", res)
+  return res
 
 # > The search begins by selecting alpha contacts from the non-empty k-bucket closest to the bucket appropriate to the key being searched on. 
 # XXX: Not convinced it is closest to bucket for other choices of n.
@@ -145,7 +175,7 @@ proc mockFindNode(node: ref Node, nodeid: NodeID): Future[seq[Contact]] {.async.
 #
 # > The contact closest to the target key, closestNode, is noted.
 proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
-  echo("iterativeFindNode ", node.id, " ", n, " distance ", distance(node.id, n))
+  echo("[Alice] iterativeFindNode ", node.id, " ", n, " distance ", distance(node.id, n))
   var candidate: Contact
   var bucket_index = which_kbucket(node, n)
 
@@ -153,14 +183,14 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
     if node.kbuckets[i].len != 0:
       candidate = node.kbuckets[i][0]
       break
-  echo("Found candidate: ", candidate)
+  echo("[Alice] Found candidate: ", candidate)
 
   var closestNode = candidate
   var shortlist: Shortlist = [candidate]
   # TODO: Send parallel async FIND_NODE reqs here
   # XXX: Hardcode bob here, normally it'd look up candidate network address and then call proc
   var resp = await mockFindNode(bob, n)
-  echo("RESP ", resp)
+  echo("[Alice] Response ", resp)
   # TODO: Add to shortlist and keep going
 
 # Join logic
@@ -172,6 +202,7 @@ var n2 = genNodeIDByInt(7) # 0111
 var n3 = genNodeIDByInt(5) # 0101
 var n4 = genNodeIDByInt(3) # 0011
 var n5 = genNodeIDByInt(8) # 1000
+# TODO: Add at least fake addresses and make sure added at right time
 AddContact(bob, n2, "")
 AddContact(bob, n3, "")
 AddContact(bob, n4, "")
