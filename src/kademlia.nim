@@ -97,6 +97,10 @@ proc AddContact(node: ref Node, nodeid: NodeID, address: string) =
   var i = which_kbucket(node, c.id)
   node.kbuckets[i].add(c)
 
+proc AddContact(node: ref Node, c: Contact) =
+  var i = which_kbucket(node, c.id)
+  node.kbuckets[i].add(c)
+
 proc newNode(name: string, id: NodeID): ref Node =
   var kbs: KBuckets
   new(result)
@@ -226,6 +230,11 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   echo("[Alice] Mock dialing Bob")
   var resp = await mockFindNode(bob, n)
   echo("[Alice] Response from Bob ", resp)
+
+  # Add new nodes as contacts
+  for c in resp:
+    AddContact(node, c)
+  echo node
 
   # XXX: Assuming we contacted first one
   shortlist = resp
