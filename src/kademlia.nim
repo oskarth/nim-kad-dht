@@ -7,7 +7,8 @@ import os
 const
   # XXX: These values are used for testing
   alpha = 1
-  b = 3
+  b = 4
+  k = 2
 
   #alpha = 3 # degree of parallelism in network calls
   #b = 160   # size of bits of keys used to identify nodes and data
@@ -118,7 +119,9 @@ proc mockFindNode(node: ref Node, nodeid: NodeID): Future[seq[Contact]] {.async.
   echo("closest kbucket is bucket ", bi, " with ", kbucket)
   os.sleep(1000)
   # TODO: If there aren't k contacts in that bucket, we should return adjacent buckets
-  # TODO: HERE ATM, k>2 case
+  # TODO: HERE ATM, k=2 case
+  # QQQ
+  # We should return more nodes here, does it make sense to extend? Lets do k=2
   return kbucket
 
 # > The search begins by selecting alpha contacts from the non-empty k-bucket closest to the bucket appropriate to the key being searched on. 
@@ -148,15 +151,17 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
 # Join logic
 #------------------------------------------------------------------------------
 
-# Second example: Bob is 110 (6) and has full connectivity
+# Second example: Bob is 0110 (6) and has full connectivity
 # Already part of network
 echo("Bob time - Kademlia connectivity")
-var n2 = genNodeIDByInt(7) # 111
-var n3 = genNodeIDByInt(5) # 101
-var n4 = genNodeIDByInt(3) # 011
+var n2 = genNodeIDByInt(7) # 0111
+var n3 = genNodeIDByInt(5) # 0101
+var n4 = genNodeIDByInt(3) # 0011
+var n5 = genNodeIDByInt(8) # 1000
 AddContact(bob, n2, "")
 AddContact(bob, n3, "")
 AddContact(bob, n4, "")
+AddContact(bob, n5, "")
 echo bob
 
 # 1. Generate node ID
@@ -174,6 +179,7 @@ discard iterativeFindNode(node, node.self)
 # Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
 # To start with lets assume our contact has Kademlia connectivity and we want it to
 
+# I dont think Alice has joined network yet.
 
 # TODO: 4. Refresh buckets further away
 #
