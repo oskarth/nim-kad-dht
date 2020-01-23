@@ -104,6 +104,20 @@ proc newNode(name: string, id: NodeID): ref Node =
   result.id = id
   result.kbuckets = kbs
 
+# Sketch Contacts Set type
+# What operations do we want?
+# - Add to set
+# - Remove from set
+# - Difference of set (don't touch seen ones)
+# - Ideally idempotent etc
+# - For now maybe all we need is difference
+# XXX: Do later
+#proc difference(a, b: seq[Contact]): seq[Contact] =
+#  sorted_a
+#  sorted_b
+#  for i in 0..<a.len:
+#
+
 # Running stuff
 #------------------------------------------------------------------------------
 #
@@ -185,7 +199,10 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
     if node.kbuckets[i].len != 0:
       candidate = node.kbuckets[i][0]
       break
-  echo("[Alice] Found candidate: ", candidate)
+  echo("[Alice] Found initial candidate: ", candidate)
+
+  #inFlight
+  #contactedContacts
 
   # We note the closest node we have
   var closestNode = candidate
@@ -196,16 +213,33 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   # What's a better way to do this in Nim? Set semantics better
   # I guess we can make a hacky set type
   var shortlist: Contacts
+  var contacted: Contacts
   shortlist.add(candidate)
 
   # TODO: Extend to send parallel async FIND_NODE requests here
   # TODO: Look up Shortlist candidate network adress, then call procedure that way
-  # Mark in-flight?
-  # XXX: Hardcode bob here
-
+  # TODO: Mark candidates in-flight?
+  # XXX: Hardcode bob here, not using candidate list
+  var c = shortlist.pop()
+  # Mark contact as contacted
+  contacted.add(c)
+  echo("[Alice] Mock dialing Bob")
   var resp = await mockFindNode(bob, n)
-  echo("[Alice] Response ", resp)
-  # TODO: Add to shortlist and keep going
+  echo("[Alice] Response from Bob ", resp)
+
+  # XXX: Assuming we contacted first one
+  shortlist = resp
+  echo("[Alice] Update shortlist ", shortlist)
+
+  # Round 2
+  # TODO: Compare with contacted
+  c = shortlist.pop()
+  contacted.add(c)
+  echo("[Alice] Update shortlist ", shortlist)
+
+  # TODO: These nodes...don't exist
+  # Update closestNode...let's make more mock nodes, specifically one that is closer
+  # Continued until we found k nodes (why? not longer? until we have full connectivity?)
 
 # Join logic
 #------------------------------------------------------------------------------
