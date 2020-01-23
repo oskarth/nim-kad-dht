@@ -21,14 +21,12 @@ const
 
 type
   NodeID* = array[b, int]
-  #KBucket = seq[NodeID] # max k items
   Contact* = object
     id*: NodeID
     address*: string
   Contacts = seq[Contact] # no limit, convenience type
-  KBucket = seq[Contact] # max k items
+  KBucket = seq[Contact] # TODO: max k items
   KBuckets = array[b, KBucket]
-  ShortList = array[alpha, Contact]
   Node = object
     # Local human-friendly name, no significance
     name: string
@@ -136,6 +134,8 @@ proc newNode(name: string, id: NodeID): ref Node =
 var bob = newNode("Bob", genNodeIDByInt(6))
 
 # Mocking RPC to node asking for FIND_NODE(id)
+# NOTE: Slightly misleading name, it really find closest nodes
+# MUST NOT return the originating node in its response
 # Returns up to k contacts
 proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.async.} =
   echo("[Bob] mockFindNode: looking for up to k=", k, " contacts closest to: ", targetid)
@@ -179,16 +179,30 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   var candidate: Contact
   var bucket_index = which_kbucket(node, n)
 
+  # XXX: Picking first candidate right now
+  # TODO: Extend to pick alpha closest contacts
   for i in 0..node.kbuckets.len - 1:
     if node.kbuckets[i].len != 0:
       candidate = node.kbuckets[i][0]
       break
   echo("[Alice] Found candidate: ", candidate)
 
+  # We note the closest node we have
   var closestNode = candidate
-  var shortlist: Shortlist = [candidate]
-  # TODO: Send parallel async FIND_NODE reqs here
-  # XXX: Hardcode bob here, normally it'd look up candidate network address and then call proc
+
+  # ShortList of contacts to be contacted
+  # NOTE: Why not use a set type? Is Shortlist ordered?
+  # Can't use native set type, needs to be of certain size https://nim-lang.org/docs/manual.html#types-set-type
+  # What's a better way to do this in Nim? Set semantics better
+  # I guess we can make a hacky set type
+  var shortlist: Contacts
+  shortlist.add(candidate)
+
+  # TODO: Extend to send parallel async FIND_NODE requests here
+  # TODO: Look up Shortlist candidate network adress, then call procedure that way
+  # Mark in-flight?
+  # XXX: Hardcode bob here
+
   var resp = await mockFindNode(bob, n)
   echo("[Alice] Response ", resp)
   # TODO: Add to shortlist and keep going
