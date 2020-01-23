@@ -28,7 +28,9 @@ type
   KBuckets = array[b, KBucket]
   ShortList = array[alpha, Contact]
   Node = object
-    self: NodeID
+    # Local human-friendly name, no significance
+    name: string
+    id: NodeID
     kbuckets: KBuckets
 
 # XXX: How does random seed work? Seem to get same number here every run
@@ -54,14 +56,26 @@ proc distance(a: NodeID, b: NodeID): NodeID =
   for i in 0..<result.len:
     result[i] = a[i] xor b[i]
 
+proc nodeHasKademliaConnectivity(n: ref Node): bool =
+  for kb in n.kbuckets:
+    if kb.len == 0:
+      return false
+  return true
+
+# XXX: This string building is ugly, use printf style
 proc `$`(n: ref Node): string =
-  var res = "Self (" & $n.self & "):\n--------------------\n"
+  var res = $n.name & " (" & $n.id & ")\n"
+  var res2 = "Kademlia connectivity: " & $nodeHasKademliaConnectivity(n) & "\n"
+  var sep = "----------------------------------------------------------------\n"
+  var buckets = ""
   for i in 0..<n.kbuckets.len:
-    res = res & $"bucket " & $i & $": " & $n.kbuckets[i] & "\n"
-  return res
+    var bucket = $"bucket " & $i & $": " & $n.kbuckets[i] & "\n"
+    buckets = buckets & bucket
+  var total = "\n" & res & res2 & sep & buckets
+  return total
 
 proc which_kbucket(node: ref Node, contact: NodeID): int =
-  var d = distance(node.self, contact)
+  var d = distance(node.id, contact)
   # Assuming bigendian, return most significant bit position
   for i in 0..<d.len:
     if d[i] == 1:
@@ -75,10 +89,11 @@ proc AddContact(node: ref Node, nodeid: NodeID, address: string) =
   var i = which_kbucket(node, c.id)
   node.kbuckets[i].add(c)
 
-proc newNode(self: NodeID): ref Node =
+proc newNode(name: string, id: NodeID): ref Node =
   var kbs: KBuckets
   new(result)
-  result.self = self
+  result.name = name
+  result.id = id
   result.kbuckets = kbs
 
 # Running stuff
@@ -108,12 +123,12 @@ proc newNode(self: NodeID): ref Node =
 
 # Node lookup
 # XXX: moving up declaration to mock RPC (hardcoded hack)
-var bob = newNode(genNodeIDByInt(6))
+var bob = newNode("Bob", genNodeIDByInt(6))
 
 # Mocking RPC to node asking for FIND_NODE(id)
 # Returns up to k contacts
 proc mockFindNode(node: ref Node, nodeid: NodeID): Future[seq[Contact]] {.async.} =
-  echo("mockFindNode, I am ", node.self, " what k-triplets close to ", nodeid)
+  echo("mockFindNode, I am ", node.id, " what k-triplets close to ", nodeid)
   var bi = which_kbucket(node, nodeid)
   var kbucket = node.kbuckets[bi]
   echo("closest kbucket is bucket ", bi, " with ", kbucket)
@@ -130,7 +145,7 @@ proc mockFindNode(node: ref Node, nodeid: NodeID): Future[seq[Contact]] {.async.
 #
 # > The contact closest to the target key, closestNode, is noted.
 proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
-  echo("iterativeFindNode ", node.self, " ", n, " distance ", distance(node.self, n))
+  echo("iterativeFindNode ", node.id, " ", n, " distance ", distance(node.id, n))
   var candidate: Contact
   var bucket_index = which_kbucket(node, n)
 
@@ -148,18 +163,11 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   echo("RESP ", resp)
   # TODO: Add to shortlist and keep going
 
-proc nodeHasKademliaConnectivity(n: ref Node): bool =
-  for kb in n.kbuckets:
-    if kb.len == 0:
-      return false
-  return true
-
 # Join logic
 #------------------------------------------------------------------------------
 
 # Second example: Bob is 0110 (6) and has full connectivity
 # Already part of network
-echo("Bob time - Kademlia connectivity")
 var n2 = genNodeIDByInt(7) # 0111
 var n3 = genNodeIDByInt(5) # 0101
 var n4 = genNodeIDByInt(3) # 0011
@@ -168,19 +176,18 @@ AddContact(bob, n2, "")
 AddContact(bob, n3, "")
 AddContact(bob, n4, "")
 AddContact(bob, n5, "")
-echo("Bob connected? ", nodeHasKademliaConnectivity(bob))
 echo bob
 
 # 1. Generate node ID
-var node = newNode(genNodeIDByInt(0))
+var node = newNode("Alice", genNodeIDByInt(0))
 
 # 2. Add known node contact c into appropriate bucket
 var n1 = genNodeIDByInt(6) # third bucket
 AddContact(node, n1, "")
 echo node
 
-# TODO 3. iterativeFindNode(n) (where n is n.self)
-discard iterativeFindNode(node, node.self)
+# TODO 3. iterativeFindNode(n) (where n is n.id)
+discard iterativeFindNode(node, node.id)
 # TODO: HEREATM: Need to revisit this logic
 #
 # Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
