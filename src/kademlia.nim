@@ -209,6 +209,11 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   # ShortList of contacts to be contacted
   shortlist.add(candidate)
 
+  proc numberOfContacts(node: ref Node): int =
+    result = 0
+    for i in 0..node.kbuckets.len - 1:
+      result += node.kbuckets[i].len
+
   # XXX: Code dup, fix in-place sort fn
   proc distCmp(x, y: Contact): int =
     if distance(x.id, targetid) < distance(y.id, targetid): -1 else: 1
@@ -219,7 +224,17 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   #
   # TODO: Make break condition explicit here
   # - k contacts or no closest node
-  for i in 0..1:
+  # The sequence of parallel searches is continued until either no node in the sets returned is closer than the closest node already seen or the initiating node has accumulated k probed and known to be active contacts.
+  # XXX: Putting upper limit
+  # Exit conditions:
+  # - node has accumulated k contacts (probed?)
+  # TODO: Here atm, we should keep track of probed here it seems, quickfix save for next
+  # TODO: OR if we didn't find closer nodes (and shortlist is empty?)
+  for i in 0..16:
+    echo(namestr, "numberOfContacts: ", numberOfContacts(node), " desired: ", k)
+    if (numberOfContacts(node) >= k):
+      echo(namestr, "Found desired number of contacts ", k, " breaking")
+      break
     # Get contact from shortlist
     # XXX: Error handling and do first here?
     var c = shortlist[0]
