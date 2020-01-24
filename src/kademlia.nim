@@ -221,10 +221,9 @@ proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.asyn
 # TODO: Pick alpha candidates
 #
 # > The contact closest to the target key, closestNode, is noted.
-proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
-  echo("[Alice] iterativeFindNode ", node.id, " ", n, " distance ", distance(node.id, n))
+proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
+  echo("[Alice] iterativeFindNode ", node.id, " ", targetid, " distance ", distance(node.id, targetid))
   var candidate: Contact
-  var bucket_index = which_kbucket(node, n)
 
   # XXX: Picking first candidate right now
   # TODO: Extend to pick alpha closest contacts
@@ -257,7 +256,7 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   # Mark contact as contacted
   contacted.add(c)
   echo("[Alice] Mock dialing Bob")
-  var resp = await mockFindNode(bob, n)
+  var resp = await mockFindNode(bob, targetid)
   echo("[Alice] Response from Bob ", resp)
 
   # Add new nodes as contacts
@@ -271,8 +270,12 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   # This list consists of contacts closest to the target
   echo("[Alice] Update shortlist ", shortlist)
 
-  var targetid = n
-  var closestCandidate = findClosestNode(shortlist, n)
+  # XXX: Code dup, fix in-place sort fn
+  proc distCmp(x, y: Contact): int =
+    if distance(x.id, targetid) < distance(y.id, targetid): -1 else: 1
+  shortlist.sort(distCmp)
+
+  var closestCandidate = findClosestNode(shortlist, targetid)
   var d1 = distance(closestCandidate.id, targetid)
   var d2 = distance(closestNode.id, targetid)
   if (d1 < d2):
@@ -282,10 +285,15 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   # XXX: Does it matter which order we update closestNode and shortlist in?
 
   # Round 2
-  # TODO: Compare with contacted
-  c = shortlist.pop()
+  # XXX: Just want to do first, eh
+  c = shortlist[0]
+  shortlist.delete(0)
+  #c = shortlist.pop()
   contacted.add(c)
   echo("[Alice] Update shortlist ", shortlist)
+
+  echo("[Alice] About to call ", c)
+  # TODO: Call Charlie
 
   # TODO: These other node don't exist, mock them?
   # Update closestNode...let's make more mock nodes, specifically one that is closer
