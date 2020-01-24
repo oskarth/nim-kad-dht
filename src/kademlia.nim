@@ -185,7 +185,8 @@ var bob = newNode("Bob", genNodeIDByInt(6))
 # MUST NOT return the originating node in its response
 # Returns up to k contacts
 proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.async.} =
-  echo("[Bob] mockFindNode: looking for up to k=", k, " contacts closest to: ", targetid)
+  var nameStr = "[" & $node.name & "] "
+  echo(nameStr, "mockFindNode: looking for up to k=", k, " contacts closest to: ", targetid)
   # Simulating some RPC latency
   os.sleep(1000)
 
@@ -213,7 +214,7 @@ proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.asyn
     if res.len == k:
       break
     res.add(c)
-  echo("[Bob] Found up to k contacts: ", res)
+  echo(nameStr, "Found up to k contacts: ", res)
   return res
 
 # > The search begins by selecting alpha contacts from the non-empty k-bucket closest to the bucket appropriate to the key being searched on. 
@@ -222,7 +223,8 @@ proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.asyn
 #
 # > The contact closest to the target key, closestNode, is noted.
 proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
-  echo("[Alice] iterativeFindNode ", node.id, " ", targetid, " distance ", distance(node.id, targetid))
+  var nameStr = "[" & $node.name & "] "
+  echo(nameStr, "iterativeFindNode ", node.id, " ", targetid, " distance ", distance(node.id, targetid))
   var candidate: Contact
 
   # XXX: Picking first candidate right now
@@ -231,7 +233,7 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
     if node.kbuckets[i].len != 0:
       candidate = node.kbuckets[i][0]
       break
-  echo("[Alice] Found initial candidate: ", candidate)
+  echo(nameStr, "Found initial candidate: ", candidate)
 
   #inFlight
   #contactedContacts
@@ -255,20 +257,21 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
   var c = shortlist.pop()
   # Mark contact as contacted
   contacted.add(c)
-  echo("[Alice] Mock dialing Bob")
+  # TODO: Remove Bob hardcoded
+  echo(namestr, "Mock dialing Bob")
   var resp = await mockFindNode(bob, targetid)
-  echo("[Alice] Response from Bob ", resp)
+  echo(namestr, "Response from Bob ", resp)
 
   # Add new nodes as contacts
   for c in resp:
     AddContact(node, c)
-  echo("[Alice] Adding new nodes as contacts")
+  echo(namestr, "Adding new nodes as contacts")
   echo node
 
   # XXX: Assuming we contacted first one
   shortlist = resp
   # This list consists of contacts closest to the target
-  echo("[Alice] Update shortlist ", shortlist)
+  echo(namestr, "Update shortlist ", shortlist)
 
   # XXX: Code dup, fix in-place sort fn
   proc distCmp(x, y: Contact): int =
@@ -279,7 +282,7 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
   var d1 = distance(closestCandidate.id, targetid)
   var d2 = distance(closestNode.id, targetid)
   if (d1 < d2):
-    echo("[Alice] Found new closestNode ", closestCandidate)
+    echo(namestr, "Found new closestNode ", closestCandidate)
     closestNode = closestcandidate
 
   # XXX: Does it matter which order we update closestNode and shortlist in?
@@ -290,15 +293,15 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
   shortlist.delete(0)
   #c = shortlist.pop()
   contacted.add(c)
-  echo("[Alice] Update shortlist ", shortlist)
+  echo(namestr, "Update shortlist ", shortlist)
 
-  echo("[Alice] About to call ", c)
+  echo(namestr, "About to call ", c)
   # TODO: Call Charlie
   # HERE ATM: Easy fix mockFindNode to respect Charlie
   # Then put logic in tighter loop
   # We should get our closest neighbor to display then
-  echo("[Alice] Mock dialing Charlie")
-  #var resp = await mockFindNode(bob, targetid)
+  echo(namestr, "Mock dialing Charlie")
+  #var resp = await mockFindNode(charie, targetid)
   #echo("[Alice] Response from Charlie ", resp)
 
   # End when:
