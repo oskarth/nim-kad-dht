@@ -2,8 +2,9 @@
 #import math
 import algorithm
 import asyncdispatch
-import strutils
 import os
+import strutils
+import tables
 
 const
   # XXX: These values are used for testing
@@ -153,32 +154,12 @@ proc findClosestNode(contacts: Contacts, targetid: NodeId): Contact =
 
 # Running stuff
 #------------------------------------------------------------------------------
-#
-
-#var an = genNodeIDByInt(0)
-#var bn = genNodeIDByInt(1)
-#var cn = genNodeIDByInt(2)
-#var dn = genNodeIDByInt(3)
-#var en = genNodeIDByInt(4)
-#var fn = genNodeIDByInt(5)
-#var gn = genNodeIDByInt(6)
-#var hn = genNodeIDByInt(7)
-#
-#var an_nodes = [bn, cn, dn, en, fn, gn, hn]
-#
-
-#for id in an_nodes:
-#  AddContact(id, "")
 
 # TODO: Max 20 (e.g.) contacts in a key bucket; need eviction policy
 #for c in an_contacts:
 #  var i = which_kbucket(an, c)
 #  kbs[i].add(c)
 #
-
-# Node lookup
-# XXX: moving up declaration to mock RPC (hardcoded hack)
-var bob = newNode("Bob", genNodeIDByInt(6))
 
 # Mocking RPC to node asking for FIND_NODE(id)
 # NOTE: Slightly misleading name, it really find closest nodes
@@ -222,7 +203,7 @@ proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.asyn
 # TODO: Pick alpha candidates
 #
 # > The contact closest to the target key, closestNode, is noted.
-proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
+proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[string, ref Node]) {.async.} =
   var nameStr = "[" & $node.name & "] "
   echo(nameStr, "iterativeFindNode ", node.id, " ", targetid, " distance ", distance(node.id, targetid))
   var candidate: Contact
@@ -259,7 +240,9 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
   contacted.add(c)
   # TODO: Remove Bob hardcoded
   echo(namestr, "Mock dialing Bob")
-  var resp = await mockFindNode(bob, targetid)
+  # lookup based on name, later on based on network
+  # XXX: How do we know this is bob though... need different index, lol
+  var resp = await mockFindNode(networkTable["bob"], targetid)
   echo(namestr, "Response from Bob ", resp)
 
   # Add new nodes as contacts
@@ -328,6 +311,7 @@ proc AddContactsFromAll(node: ref Node, indices: seq[int]) =
 
 # Bob is 0110 (6) and has full connectivity
 # TODO: Add at least fake addresses and make sure added at right time
+var bob = newNode("Bob", genNodeIDByInt(6))
 AddContactsFromAll(bob, @[3, 5, 7, 8])
 
 # Charlie is 0011 (3) has full connectivity, and knows something Bob doesn't
@@ -351,8 +335,13 @@ echo alice
 echo bob
 echo charlie
 
+# NOTE: This is used to mock RPC calls with objects
+# TODO: Extend this to lookup address and RPC call
+# For now this contains all relevant objects
+var networkTable = {"alice": alice, "bob": bob, "charlie": charlie}.toTable
+
 # TODO 3. iterativeFindNode(n) (where n is n.id)
-discard iterativeFindNode(alice, alice.id)
+discard iterativeFindNode(alice, alice.id, networkTable)
 # TODO: HEREATM: Need to revisit this logic
 #
 # Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
