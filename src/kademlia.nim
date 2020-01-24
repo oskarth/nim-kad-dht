@@ -92,6 +92,7 @@ proc which_kbucket(node: ref Node, contact: NodeID): int =
   return -1
 
 # XXX: Assuming kb isn't full
+# XXX: Can we get rid of this? Lets see with network mocking
 proc AddContact(node: ref Node, nodeid: NodeID, address: string) =
   var c = Contact(id: nodeid, address: "")
   var i = which_kbucket(node, c.id)
@@ -100,6 +101,10 @@ proc AddContact(node: ref Node, nodeid: NodeID, address: string) =
 proc AddContact(node: ref Node, c: Contact) =
   var i = which_kbucket(node, c.id)
   node.kbuckets[i].add(c)
+
+proc AddContacts(node: ref Node, contacts: Contacts) =
+  for c in contacts:
+    AddContact(node, c)
 
 proc newNode(name: string, id: NodeID): ref Node =
   var kbs: KBuckets
@@ -246,36 +251,57 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   contacted.add(c)
   echo("[Alice] Update shortlist ", shortlist)
 
-  # TODO: These nodes...don't exist
+  # TODO: These other node don't exist, mock them?
   # Update closestNode...let's make more mock nodes, specifically one that is closer
   # Continued until we found k nodes (why? not longer? until we have full connectivity?)
+  # What does paper say?
+  # "continues until it has received from k closest contacts", how do we know? bleh, sleep
+
+  # End condition:
+  #
+  # > The sequence of parallel searches is continued until either no node in the sets returned is closer than the closest node already seen or the initiating node has accumulated k probed and known to be active contacts.
+  # > If a cycle doesn't find a closer node, if closestNode is unchanged, then the initiating node sends a FIND_* RPC to each of the k closest nodes that it has not already queried.
+  # > At the end of this process, the node will have accumulated a set of k active contacts or (if the RPC was FIND_VALUE) may have found a data value. Either a set of triples or the value is returned to the caller.
 
 # Join logic
 #------------------------------------------------------------------------------
 
-# Second example: Bob is 0110 (6) and has full connectivity
-# Already part of network
-var n2 = genNodeIDByInt(7) # 0111
-var n3 = genNodeIDByInt(5) # 0101
-var n4 = genNodeIDByInt(3) # 0011
-var n5 = genNodeIDByInt(8) # 1000
+# 0. Setup existing network first, then Alice joins
+# Global view for testing, assumes all possible nodes exist
+var all_contacts: Contacts
+for i in 0..15:
+  all_contacts.add(Contact(id: genNodeIDByInt(i), address: ""))
+
+proc AddContactsFromAll(node: ref Node, indices: seq[int]) =
+  for i in indices:
+    AddContact(node, Contact(id: genNodeIDByInt(i), address: ""))
+
+# Alice hasn't joined yet but she will be 0
+
+# Bob is 0110 (6) and has full connectivity
 # TODO: Add at least fake addresses and make sure added at right time
-AddContact(bob, n2, "")
-AddContact(bob, n3, "")
-AddContact(bob, n4, "")
-AddContact(bob, n5, "")
-echo bob
+AddContactsFromAll(bob, @[3, 5, 7, 8])
+
+# Charlie is 0011 (3) has full connectivity, and knows something Bob doesn't
+var charlie = newNode("Charlie", genNodeIDByInt(3))
+AddContactsFromAll(charlie, @[1, 2, 6, 8, 12])
+
+# TODO: Dan
 
 # 1. Generate node ID
-var node = newNode("Alice", genNodeIDByInt(0))
+var alice = newNode("Alice", genNodeIDByInt(0))
 
 # 2. Add known node contact c into appropriate bucket
-var n1 = genNodeIDByInt(6) # third bucket
-AddContact(node, n1, "")
-echo node
+# This is Bob
+AddContact(alice, all_contacts[6])
+
+echo "Printing network"
+echo alice
+echo bob
+echo charlie
 
 # TODO 3. iterativeFindNode(n) (where n is n.id)
-discard iterativeFindNode(node, node.id)
+discard iterativeFindNode(alice, alice.id)
 # TODO: HEREATM: Need to revisit this logic
 #
 # Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
