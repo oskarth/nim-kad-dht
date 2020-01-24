@@ -52,6 +52,10 @@ proc `$`(n: NodeID): string =
   for i in 0..<n.len:
     result &= $n[i]
 
+# Don't care about address for now
+proc `$`(c: Contact): string =
+  result = $c.id
+
 proc distance(a: NodeID, b: NodeID): NodeID = 
   for i in 0..<result.len:
     result[i] = a[i] xor b[i]
