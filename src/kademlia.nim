@@ -294,18 +294,19 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID) {.async.} =
 
   echo("[Alice] About to call ", c)
   # TODO: Call Charlie
+  # HERE ATM: Easy fix mockFindNode to respect Charlie
+  # Then put logic in tighter loop
+  # We should get our closest neighbor to display then
+  echo("[Alice] Mock dialing Charlie")
+  #var resp = await mockFindNode(bob, targetid)
+  #echo("[Alice] Response from Charlie ", resp)
 
-  # TODO: These other node don't exist, mock them?
-  # Update closestNode...let's make more mock nodes, specifically one that is closer
-  # Continued until we found k nodes (why? not longer? until we have full connectivity?)
-  # What does paper say?
-  # "continues until it has received from k closest contacts", how do we know? bleh, sleep
-
-  # End condition:
-  #
+  # End when:
   # > The sequence of parallel searches is continued until either no node in the sets returned is closer than the closest node already seen or the initiating node has accumulated k probed and known to be active contacts.
   # > If a cycle doesn't find a closer node, if closestNode is unchanged, then the initiating node sends a FIND_* RPC to each of the k closest nodes that it has not already queried.
   # > At the end of this process, the node will have accumulated a set of k active contacts or (if the RPC was FIND_VALUE) may have found a data value. Either a set of triples or the value is returned to the caller.
+  #
+  # Still not clear on why we abort after k contacts, maybe evident in refreshBucket step
 
 # Setup existing network
 #------------------------------------------------------------------------------
