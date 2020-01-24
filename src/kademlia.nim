@@ -124,6 +124,19 @@ proc newNode(name: string, id: NodeID): ref Node =
   result.id = id
   result.kbuckets = kbs
 
+# XXX: This is definitely not most elegant way of doing this
+proc findClosestNode(contacts: Contacts, targetid: NodeId): Contact =
+  var temp: seq[Contact]
+  for c in contacts:
+    temp.add(c)
+
+  proc distCmp(x, y: Contact): int =
+    if distance(x.id, targetid) < distance(y.id, targetid): -1 else: 1
+
+  temp.sort(distCmp)
+  result = temp[0]
+
+
 # Sketch Contacts Set type
 # What operations do we want?
 # - Add to set
@@ -250,11 +263,23 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   # Add new nodes as contacts
   for c in resp:
     AddContact(node, c)
+  echo("[Alice] Adding new nodes as contacts")
   echo node
 
   # XXX: Assuming we contacted first one
   shortlist = resp
+  # This list consists of contacts closest to the target
   echo("[Alice] Update shortlist ", shortlist)
+
+  var targetid = n
+  var closestCandidate = findClosestNode(shortlist, n)
+  var d1 = distance(closestCandidate.id, targetid)
+  var d2 = distance(closestNode.id, targetid)
+  if (d1 < d2):
+    echo("[Alice] Found new closestNode ", closestCandidate)
+    closestNode = closestcandidate
+
+  # XXX: Does it matter which order we update closestNode and shortlist in?
 
   # Round 2
   # TODO: Compare with contacted
@@ -274,10 +299,10 @@ proc iterativeFindNode(node: ref Node, n: NodeID) {.async.} =
   # > If a cycle doesn't find a closer node, if closestNode is unchanged, then the initiating node sends a FIND_* RPC to each of the k closest nodes that it has not already queried.
   # > At the end of this process, the node will have accumulated a set of k active contacts or (if the RPC was FIND_VALUE) may have found a data value. Either a set of triples or the value is returned to the caller.
 
-# Join logic
+# Setup existing network
 #------------------------------------------------------------------------------
 
-# 0. Setup existing network first, then Alice joins
+# Setup existing network first, then Alice joins
 # Global view for testing, assumes all possible nodes exist
 var all_contacts: Contacts
 for i in 0..15:
@@ -298,6 +323,9 @@ var charlie = newNode("Charlie", genNodeIDByInt(3))
 AddContactsFromAll(charlie, @[1, 2, 6, 8, 12])
 
 # TODO: Dan
+
+# Join logic
+#------------------------------------------------------------------------------
 
 # 1. Generate node ID
 var alice = newNode("Alice", genNodeIDByInt(0))
