@@ -137,21 +137,6 @@ proc findClosestNode(contacts: Contacts, targetid: NodeId): Contact =
   temp.sort(distCmp)
   result = temp[0]
 
-
-# Sketch Contacts Set type
-# What operations do we want?
-# - Add to set
-# - Remove from set
-# - Difference of set (don't touch seen ones)
-# - Ideally idempotent etc
-# - For now maybe all we need is difference
-# XXX: Do later
-#proc difference(a, b: seq[Contact]): seq[Contact] =
-#  sorted_a
-#  sorted_b
-#  for i in 0..<a.len:
-#
-
 # Running stuff
 #------------------------------------------------------------------------------
 
@@ -207,6 +192,8 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   var nameStr = "[" & $node.name & "] "
   echo(nameStr, "iterativeFindNode ", node.id, " ", targetid, " distance ", distance(node.id, targetid))
   var candidate: Contact
+  var shortlist: Contacts
+  var contacted: Contacts
 
   # XXX: Picking first candidate right now
   # TODO: Extend to pick alpha closest contacts
@@ -216,75 +203,52 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
       break
   echo(nameStr, "Found initial candidate: ", candidate)
 
-  #inFlight
-  #contactedContacts
-
   # We note the closest node we have
   var closestNode = candidate
 
   # ShortList of contacts to be contacted
-  # NOTE: Why not use a set type? Is Shortlist ordered?
-  # Can't use native set type, needs to be of certain size https://nim-lang.org/docs/manual.html#types-set-type
-  # What's a better way to do this in Nim? Set semantics better
-  # I guess we can make a hacky set type
-  var shortlist: Contacts
-  var contacted: Contacts
   shortlist.add(candidate)
-
-  # TODO: Extend to send parallel async FIND_NODE requests here
-  # TODO: Look up Shortlist candidate network adress, then call procedure that way
-  # TODO: Mark candidates in-flight?
-  var c = shortlist.pop()
-  # Mark contact as contacted
-  contacted.add(c)
-  echo(namestr, "Mock dialing ", c)
-  # NOTE: Mock dialing based on id-object mapping
-  # TODO: Do lookup of network address here and call that
-  # XXX: Assuming c.id it exists in networkTable
-  var resp = await mockFindNode(networkTable[c.id], targetid)
-  echo(namestr, "Response from Bob ", resp)
-
-  # Add new nodes as contacts
-  for c in resp:
-    AddContact(node, c)
-  echo(namestr, "Adding new nodes as contacts")
-  echo node
-
-  # XXX: Assuming we contacted first one
-  shortlist = resp
-  # This list consists of contacts closest to the target
-  echo(namestr, "Update shortlist ", shortlist)
 
   # XXX: Code dup, fix in-place sort fn
   proc distCmp(x, y: Contact): int =
     if distance(x.id, targetid) < distance(y.id, targetid): -1 else: 1
-  shortlist.sort(distCmp)
 
-  var closestCandidate = findClosestNode(shortlist, targetid)
-  var d1 = distance(closestCandidate.id, targetid)
-  var d2 = distance(closestNode.id, targetid)
-  if (d1 < d2):
-    echo(namestr, "Found new closestNode ", closestCandidate)
-    closestNode = closestcandidate
+  # Take alpha candidates from shortlist, call them
+  # TODO: Extend to send parallel async FIND_NODE requests here
+  # TODO: Mark candidates in-flight?
+  #
+  # TODO: Make break condition explicit here
+  # - k contacts or no closest node
+  for i in 0..1:
+    # Get contact from shortlist
+    # XXX: Error handling and do first here?
+    var c = shortlist[0]
+    shortlist.delete(0)
+    contacted.add(c)
 
-  # XXX: Does it matter which order we update closestNode and shortlist in?
+    # Mock dial them them
+    echo(namestr, "Mock dialing ", c)
+    # XXX: Assuming c.id it exists in networkTable
+    var resp = await mockFindNode(networkTable[c.id], targetid)
+    echo(namestr, "Response ", resp)
 
-  # Round 2
-  # XXX: Just want to do first, eh
-  c = shortlist[0]
-  shortlist.delete(0)
-  #c = shortlist.pop()
-  contacted.add(c)
-  echo(namestr, "Update shortlist ", shortlist)
+    # Add new nodes as contacts, update shortlist and closestNode
+    # XXX: Does it matter which order we update closestNode and shortlist in?
+    for c in resp:
+      AddContact(node, c)
+    echo(namestr, "Adding new nodes as contacts")
+    echo node
+    shortlist = resp
+    shortlist.sort(distCmp)
+    echo(namestr, "Update shortlist ", shortlist)
 
-  echo(namestr, "About to call ", c)
-  # TODO: Call Charlie
-  # HERE ATM: Easy fix mockFindNode to respect Charlie
-  # Then put logic in tighter loop
-  # We should get our closest neighbor to display then
-  echo(namestr, "Mock dialing Charlie")
-  #var resp = await mockFindNode(charie, targetid)
-  #echo("[Alice] Response from Charlie ", resp)
+    # Update closest node
+    var closestCandidate = findClosestNode(shortlist, targetid)
+    var d1 = distance(closestCandidate.id, targetid)
+    var d2 = distance(closestNode.id, targetid)
+    if (d1 < d2):
+      echo(namestr, "Found new closestNode ", closestCandidate)
+      closestNode = closestcandidate
 
   # End when:
   # > The sequence of parallel searches is continued until either no node in the sets returned is closer than the closest node already seen or the initiating node has accumulated k probed and known to be active contacts.
