@@ -56,9 +56,13 @@ proc `$`(n: NodeID): string =
 proc `$`(c: Contact): string =
   result = $c.id
 
+# XXX: distance is not actually nodeID but bs
 proc distance(a: NodeID, b: NodeID): NodeID = 
   for i in 0..<result.len:
     result[i] = a[i] xor b[i]
+
+proc distance(a, b: Contact): NodeID =
+  return distance(a.id, b.id)
 
 proc `<`(a, b: NodeID): bool =
   for i in 0..<a.len:
@@ -67,6 +71,9 @@ proc `<`(a, b: NodeID): bool =
     if b[i] < a[i]:
       return false
   return false
+
+proc `<`(a, b: Contact): bool =
+  return a.id < b.id
 
 proc nodeHasKademliaConnectivity(n: ref Node): bool =
   for kb in n.kbuckets:
