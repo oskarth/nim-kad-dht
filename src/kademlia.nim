@@ -203,7 +203,7 @@ proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.asyn
 # TODO: Pick alpha candidates
 #
 # > The contact closest to the target key, closestNode, is noted.
-proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[string, ref Node]) {.async.} =
+proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[NodeID, ref Node]) {.async.} =
   var nameStr = "[" & $node.name & "] "
   echo(nameStr, "iterativeFindNode ", node.id, " ", targetid, " distance ", distance(node.id, targetid))
   var candidate: Contact
@@ -234,15 +234,14 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[str
   # TODO: Extend to send parallel async FIND_NODE requests here
   # TODO: Look up Shortlist candidate network adress, then call procedure that way
   # TODO: Mark candidates in-flight?
-  # XXX: Hardcode bob here, not using candidate list
   var c = shortlist.pop()
   # Mark contact as contacted
   contacted.add(c)
-  # TODO: Remove Bob hardcoded
-  echo(namestr, "Mock dialing Bob")
-  # lookup based on name, later on based on network
-  # XXX: How do we know this is bob though... need different index, lol
-  var resp = await mockFindNode(networkTable["bob"], targetid)
+  echo(namestr, "Mock dialing ", c)
+  # NOTE: Mock dialing based on id-object mapping
+  # TODO: Do lookup of network address here and call that
+  # XXX: Assuming c.id it exists in networkTable
+  var resp = await mockFindNode(networkTable[c.id], targetid)
   echo(namestr, "Response from Bob ", resp)
 
   # Add new nodes as contacts
@@ -338,7 +337,7 @@ echo charlie
 # NOTE: This is used to mock RPC calls with objects
 # TODO: Extend this to lookup address and RPC call
 # For now this contains all relevant objects
-var networkTable = {"alice": alice, "bob": bob, "charlie": charlie}.toTable
+var networkTable = {alice.id: alice, bob.id: bob, charlie.id: charlie}.toTable
 
 # TODO 3. iterativeFindNode(n) (where n is n.id)
 discard iterativeFindNode(alice, alice.id, networkTable)
