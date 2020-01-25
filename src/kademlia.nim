@@ -205,6 +205,7 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
 
   # We note the closest node we have
   var closestNode = candidate
+  var movedCloser = true
 
   # Keep track of number of probed and active contacts
   # XXX: What counts as active? When should we reset this etc? For now hardcode
@@ -226,15 +227,13 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   # Take alpha candidates from shortlist, call them
   # TODO: Extend to send parallel async FIND_NODE requests here
   # TODO: Mark candidates in-flight?
-  #
-  # TODO: Make break condition explicit here
-  # - k contacts or no closest node
   # The sequence of parallel searches is continued until either no node in the sets returned is closer than the closest node already seen or the initiating node has accumulated k probed and known to be active contacts.
   # XXX: Putting upper limit
-  # Exit conditions:
-  # - node has accumulated k contacts (probed?)
-  # TODO: OR if we didn't find closer nodes (and shortlist is empty?)
   for i in 0..16:
+    if ((movedCloser == false) and (shortlist.len() == 0)):
+      # XXX: Not tested
+      echo(namestr, "Didn't move lcoser to node and no nodes left to check in shortlist, breaking")
+      break
     echo(namestr, "Active contacts: ", activeContacts, " desired: ", k)
     if (activeContacts >= k):
       echo(namestr, "Found desired number of active and probed contacts ", k, " breaking")
@@ -270,6 +269,9 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
     if (d1 < d2):
       echo(namestr, "Found new closestNode ", closestCandidate)
       closestNode = closestcandidate
+      movedCloser = true
+    else:
+      movedCloser = false
 
   # End when:
   # > The sequence of parallel searches is continued until either no node in the sets returned is closer than the closest node already seen or the initiating node has accumulated k probed and known to be active contacts.
