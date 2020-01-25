@@ -282,9 +282,13 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   # Still not clear on why we abort after k contacts, maybe evident in refreshBucket step
 
 # TODO: refreshBucket - take random element and do find node on own id here
+# XXX: Bug? It keeps taking random Bob instead of the much better Dan
+# If I compile beforehand (vs interactive run) it gets different result...
 proc refreshBucket(node: ref Node, idx: int, bucket: KBucket, networkTable: Table[NodeID, ref Node]) {.async.} =
   var nameStr = "[" & $node.name & "] "
   echo(nameStr, "Refreshing bucket ", idx)
+  echo("Randomize moar")
+  randomize()
   var c = bucket[rand(bucket.len-1)]
   echo(namestr, "Mock dialing random contact from bucket ", c)
   if not networkTable.hasKey(c.id):
@@ -373,3 +377,5 @@ discard iterativeFindNode(alice, alice.id, networkTable)
 refreshMostDistantBucket(alice, networkTable)
 
 # Alice has joied the network.
+# XXX: Sometimes they don't get new info, in which case Alice won't get full connectivity (50% atm)
+# Solved by multiple bucket refreshes?
