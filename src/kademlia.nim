@@ -206,9 +206,14 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   # We note the closest node we have
   var closestNode = candidate
 
+  # Keep track of number of probed and active contacts
+  # XXX: What counts as active? When should we reset this etc? For now hardcode
+  var activeContacts = 0
+
   # ShortList of contacts to be contacted
   shortlist.add(candidate)
 
+  # XXX: Remove me?
   proc numberOfContacts(node: ref Node): int =
     result = 0
     for i in 0..node.kbuckets.len - 1:
@@ -228,12 +233,11 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   # XXX: Putting upper limit
   # Exit conditions:
   # - node has accumulated k contacts (probed?)
-  # TODO: Here atm, we should keep track of probed here it seems, quickfix save for next
   # TODO: OR if we didn't find closer nodes (and shortlist is empty?)
   for i in 0..16:
-    echo(namestr, "numberOfContacts: ", numberOfContacts(node), " desired: ", k)
-    if (numberOfContacts(node) >= k):
-      echo(namestr, "Found desired number of contacts ", k, " breaking")
+    echo(namestr, "Active contacts: ", activeContacts, " desired: ", k)
+    if (activeContacts >= k):
+      echo(namestr, "Found desired number of active and probed contacts ", k, " breaking")
       break
     # Get contact from shortlist
     # XXX: Error handling and do first here?
@@ -247,8 +251,10 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
     var resp = await mockFindNode(networkTable[c.id], targetid)
     echo(namestr, "Response ", resp)
 
-    # Add new nodes as contacts, update shortlist and closestNode
+    # Add new nodes as contacts, update activeContacts, shortlist and closestNode
     # XXX: Does it matter which order we update closestNode and shortlist in?
+    # Only one, the one we probed - responses we don't know yet
+    activeContacts += 1
     for c in resp:
       AddContact(node, c)
     echo(namestr, "Adding new nodes as contacts")
