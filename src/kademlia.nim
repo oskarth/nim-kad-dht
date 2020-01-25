@@ -150,6 +150,7 @@ proc findClosestNode(contacts: Contacts, targetid: NodeId): Contact =
 # NOTE: Slightly misleading name, it really find closest nodes
 # MUST NOT return the originating node in its response
 # Returns up to k contacts
+# TODO: When being queried, this should also update that node's routing table
 proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.async.} =
   var nameStr = "[" & $node.name & "] "
   echo(nameStr, "mockFindNode: looking for up to k=", k, " contacts closest to: ", targetid)
@@ -183,6 +184,7 @@ proc mockFindNode(node: ref Node, targetid: NodeID): Future[seq[Contact]] {.asyn
   echo(nameStr, "Found up to k contacts: ", res)
   return res
 
+# TODO: Refactor this functon, it is a monster atm
 # > The search begins by selecting alpha contacts from the non-empty k-bucket closest to the bucket appropriate to the key being searched on. 
 # XXX: Not convinced it is closest to bucket for other choices of n.
 # TODO: Pick alpha candidates
@@ -280,6 +282,21 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   #
   # Still not clear on why we abort after k contacts, maybe evident in refreshBucket step
 
+
+# XXX: Refreshes _all_ buckets further away than "closest neighbor" - who is that?
+# "occupied bucket with the lowest index", so isn't that just one? the "rightmost"/furthest-away one?
+# Refreshing means picking a random ID from bucket and doing a node search for that ID
+proc refreshMostDistantBucket(node: ref Node) =
+  var nameStr = "[" & $node.name & "] "
+  echo(nameStr, "Refreshing most distant bucket")
+  # Find most distant bucket
+  for i in 0..node.kbuckets.len-1:
+    var bucket = node.kbuckets[node.kbuckets.len-1-i]
+    if bucket.len != 0:
+      echo(nameStr, "Last bucket we want to refresh with random member ", bucket)
+      # TODO: refreshBucket - take random element and do find node on own id here
+      break
+
 # Setup existing network
 #------------------------------------------------------------------------------
 
@@ -327,8 +344,8 @@ echo charlie
 var networkTable = {alice.id: alice, bob.id: bob, charlie.id: charlie}.toTable
 
 # TODO 3. iterativeFindNode(n) (where n is n.id)
+# XXX: Should we use this return value? We are already updating alice node object...
 discard iterativeFindNode(alice, alice.id, networkTable)
-# TODO: HEREATM: Need to revisit this logic
 #
 # Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
 # To start with lets assume our contact has Kademlia connectivity and we want it to
@@ -336,5 +353,5 @@ discard iterativeFindNode(alice, alice.id, networkTable)
 # I dont think Alice has joined network yet.
 
 # TODO: 4. Refresh buckets further away
-#
-#
+# "it refreshes all buckets further away than its closest neighbor, which will be in the occupied bucket with the lowest index."
+refreshMostDistantBucket(alice)
