@@ -338,7 +338,10 @@ AddContactsFromAll(bob, @[3, 5, 7, 8])
 var charlie = newNode("Charlie", genNodeIDByInt(3))
 AddContactsFromAll(charlie, @[1, 2, 6, 8, 12])
 
-# TODO: Dan, who is Dan? 0101?
+# Dan doesn't have full connectivity
+# Alice needs him for bucket refresh (via Bob)
+var dan = newNode("Dan", genNodeIDByInt(5))
+AddContactsFromAll(dan, @[6, 9, 14])
 
 # Join logic
 #------------------------------------------------------------------------------
@@ -354,21 +357,19 @@ echo "Printing network"
 echo alice
 echo bob
 echo charlie
+echo dan
 
 # NOTE: This is used to mock RPC calls with objects
 # TODO: Extend this to lookup address and RPC call
 # For now this contains all relevant objects
-var networkTable = {alice.id: alice, bob.id: bob, charlie.id: charlie}.toTable
+var networkTable = {alice.id: alice, bob.id: bob, charlie.id: charlie, dan.id: dan}.toTable
 
-# TODO 3. iterativeFindNode(n) (where n is n.id)
+# 3. iterativeFindNode(n) (where n is n.id)
 # XXX: Should we use this return value? We are already updating alice node object...
 discard iterativeFindNode(alice, alice.id, networkTable)
-#
-# Then we can mock find node RPC as a function, perhaps async, get some nodes and keep going
-# To start with lets assume our contact has Kademlia connectivity and we want it to
 
-# I dont think Alice has joined network yet.
-
-# TODO: 4. Refresh buckets further away
+# 4. Refresh buckets further away
 # "it refreshes all buckets further away than its closest neighbor, which will be in the occupied bucket with the lowest index."
 refreshMostDistantBucket(alice, networkTable)
+
+# Alice has joied the network.
