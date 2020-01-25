@@ -9,6 +9,16 @@ import nimpb/nimpb
 import nimpb/json as nimpb_json
 
 type
+    dht_Contact* = ref dht_ContactObj
+    dht_ContactObj* = object of Message
+        id: int32
+        address: string
+    dht_FindNodeRequest* = ref dht_FindNodeRequestObj
+    dht_FindNodeRequestObj* = object of Message
+        id: int32
+    dht_FindNodeResponse* = ref dht_FindNodeResponseObj
+    dht_FindNodeResponseObj* = object of Message
+        contacts: seq[dht_Contact]
     dht_PingRequest* = ref dht_PingRequestObj
     dht_PingRequestObj* = object of Message
         id: int32
@@ -25,6 +35,24 @@ proc sizeOfdht_PingRequest*(message: dht_PingRequest): uint64
 proc toJson*(message: dht_PingRequest): JsonNode
 proc parsedht_PingRequest*(obj: JsonNode): dht_PingRequest
 
+proc newdht_Contact*(): dht_Contact
+proc newdht_Contact*(data: string): dht_Contact
+proc newdht_Contact*(data: seq[byte]): dht_Contact
+proc writedht_Contact*(stream: Stream, message: dht_Contact)
+proc readdht_Contact*(stream: Stream): dht_Contact
+proc sizeOfdht_Contact*(message: dht_Contact): uint64
+proc toJson*(message: dht_Contact): JsonNode
+proc parsedht_Contact*(obj: JsonNode): dht_Contact
+
+proc newdht_FindNodeRequest*(): dht_FindNodeRequest
+proc newdht_FindNodeRequest*(data: string): dht_FindNodeRequest
+proc newdht_FindNodeRequest*(data: seq[byte]): dht_FindNodeRequest
+proc writedht_FindNodeRequest*(stream: Stream, message: dht_FindNodeRequest)
+proc readdht_FindNodeRequest*(stream: Stream): dht_FindNodeRequest
+proc sizeOfdht_FindNodeRequest*(message: dht_FindNodeRequest): uint64
+proc toJson*(message: dht_FindNodeRequest): JsonNode
+proc parsedht_FindNodeRequest*(obj: JsonNode): dht_FindNodeRequest
+
 proc newdht_PingResponse*(): dht_PingResponse
 proc newdht_PingResponse*(data: string): dht_PingResponse
 proc newdht_PingResponse*(data: seq[byte]): dht_PingResponse
@@ -33,6 +61,15 @@ proc readdht_PingResponse*(stream: Stream): dht_PingResponse
 proc sizeOfdht_PingResponse*(message: dht_PingResponse): uint64
 proc toJson*(message: dht_PingResponse): JsonNode
 proc parsedht_PingResponse*(obj: JsonNode): dht_PingResponse
+
+proc newdht_FindNodeResponse*(): dht_FindNodeResponse
+proc newdht_FindNodeResponse*(data: string): dht_FindNodeResponse
+proc newdht_FindNodeResponse*(data: seq[byte]): dht_FindNodeResponse
+proc writedht_FindNodeResponse*(stream: Stream, message: dht_FindNodeResponse)
+proc readdht_FindNodeResponse*(stream: Stream): dht_FindNodeResponse
+proc sizeOfdht_FindNodeResponse*(message: dht_FindNodeResponse): uint64
+proc toJson*(message: dht_FindNodeResponse): JsonNode
+proc parsedht_FindNodeResponse*(obj: JsonNode): dht_FindNodeResponse
 
 proc fullyQualifiedName*(T: typedesc[dht_PingRequest]): string = "dht.PingRequest"
 
@@ -121,6 +158,206 @@ proc newdht_PingRequest*(data: seq[byte]): dht_PingRequest =
     result = readdht_PingRequest(ss)
 
 
+proc fullyQualifiedName*(T: typedesc[dht_Contact]): string = "dht.Contact"
+
+proc readdht_ContactImpl(stream: Stream): Message = readdht_Contact(stream)
+proc writedht_ContactImpl(stream: Stream, msg: Message) = writedht_Contact(stream, dht_Contact(msg))
+proc toJsondht_ContactImpl(msg: Message): JsonNode = toJson(dht_Contact(msg))
+proc fromJsondht_ContactImpl(node: JsonNode): Message = parsedht_Contact(node)
+
+proc dht_ContactProcs*(): MessageProcs =
+    result.readImpl = readdht_ContactImpl
+    result.writeImpl = writedht_ContactImpl
+    result.toJsonImpl = toJsondht_ContactImpl
+    result.fromJsonImpl = fromJsondht_ContactImpl
+
+proc newdht_Contact*(): dht_Contact =
+    new(result)
+    initMessage(result[])
+    result.procs = dht_ContactProcs()
+    result.id = 0
+    result.address = ""
+
+proc clearid*(message: dht_Contact) =
+    message.id = 0
+
+proc setid*(message: dht_Contact, value: int32) =
+    message.id = value
+
+proc id*(message: dht_Contact): int32 {.inline.} =
+    message.id
+
+proc `id=`*(message: dht_Contact, value: int32) {.inline.} =
+    setid(message, value)
+
+proc clearaddress*(message: dht_Contact) =
+    message.address = ""
+
+proc setaddress*(message: dht_Contact, value: string) =
+    message.address = value
+
+proc address*(message: dht_Contact): string {.inline.} =
+    message.address
+
+proc `address=`*(message: dht_Contact, value: string) {.inline.} =
+    setaddress(message, value)
+
+proc sizeOfdht_Contact*(message: dht_Contact): uint64 =
+    if message.id != 0:
+        result = result + sizeOfTag(1, WireType.Varint)
+        result = result + sizeOfInt32(message.id)
+    if len(message.address) > 0:
+        result = result + sizeOfTag(2, WireType.LengthDelimited)
+        result = result + sizeOfString(message.address)
+    result = result + sizeOfUnknownFields(message)
+
+proc writedht_Contact*(stream: Stream, message: dht_Contact) =
+    if message.id != 0:
+        protoWriteInt32(stream, message.id, 1)
+    if len(message.address) > 0:
+        protoWriteString(stream, message.address, 2)
+    writeUnknownFields(stream, message)
+
+proc readdht_Contact*(stream: Stream): dht_Contact =
+    result = newdht_Contact()
+    while not atEnd(stream):
+        let
+            tag = readTag(stream)
+            wireType = wireType(tag)
+        case fieldNumber(tag)
+        of 0:
+            raise newException(InvalidFieldNumberError, "Invalid field number: 0")
+        of 1:
+            expectWireType(wireType, WireType.Varint)
+            setid(result, protoReadInt32(stream))
+        of 2:
+            expectWireType(wireType, WireType.LengthDelimited)
+            setaddress(result, protoReadString(stream))
+        else: readUnknownField(stream, result, tag)
+
+proc toJson*(message: dht_Contact): JsonNode =
+    result = newJObject()
+    if message.id != 0:
+        result["id"] = %message.id
+    if len(message.address) > 0:
+        result["address"] = %message.address
+
+proc parsedht_Contact*(obj: JsonNode): dht_Contact =
+    result = newdht_Contact()
+    var node: JsonNode
+    if obj.kind != JObject:
+        raise newException(nimpb_json.ParseError, "object expected")
+    node = getJsonField(obj, "id", "id")
+    if node != nil and node.kind != JNull:
+        setid(result, parseInt[int32](node))
+    node = getJsonField(obj, "address", "address")
+    if node != nil and node.kind != JNull:
+        setaddress(result, parseString(node))
+
+proc serialize*(message: dht_Contact): string =
+    let
+        ss = newStringStream()
+    writedht_Contact(ss, message)
+    result = ss.data
+
+proc newdht_Contact*(data: string): dht_Contact =
+    let
+        ss = newStringStream(data)
+    result = readdht_Contact(ss)
+
+proc newdht_Contact*(data: seq[byte]): dht_Contact =
+    let
+        ss = newStringStream(cast[string](data))
+    result = readdht_Contact(ss)
+
+
+proc fullyQualifiedName*(T: typedesc[dht_FindNodeRequest]): string = "dht.FindNodeRequest"
+
+proc readdht_FindNodeRequestImpl(stream: Stream): Message = readdht_FindNodeRequest(stream)
+proc writedht_FindNodeRequestImpl(stream: Stream, msg: Message) = writedht_FindNodeRequest(stream, dht_FindNodeRequest(msg))
+proc toJsondht_FindNodeRequestImpl(msg: Message): JsonNode = toJson(dht_FindNodeRequest(msg))
+proc fromJsondht_FindNodeRequestImpl(node: JsonNode): Message = parsedht_FindNodeRequest(node)
+
+proc dht_FindNodeRequestProcs*(): MessageProcs =
+    result.readImpl = readdht_FindNodeRequestImpl
+    result.writeImpl = writedht_FindNodeRequestImpl
+    result.toJsonImpl = toJsondht_FindNodeRequestImpl
+    result.fromJsonImpl = fromJsondht_FindNodeRequestImpl
+
+proc newdht_FindNodeRequest*(): dht_FindNodeRequest =
+    new(result)
+    initMessage(result[])
+    result.procs = dht_FindNodeRequestProcs()
+    result.id = 0
+
+proc clearid*(message: dht_FindNodeRequest) =
+    message.id = 0
+
+proc setid*(message: dht_FindNodeRequest, value: int32) =
+    message.id = value
+
+proc id*(message: dht_FindNodeRequest): int32 {.inline.} =
+    message.id
+
+proc `id=`*(message: dht_FindNodeRequest, value: int32) {.inline.} =
+    setid(message, value)
+
+proc sizeOfdht_FindNodeRequest*(message: dht_FindNodeRequest): uint64 =
+    if message.id != 0:
+        result = result + sizeOfTag(1, WireType.Varint)
+        result = result + sizeOfInt32(message.id)
+    result = result + sizeOfUnknownFields(message)
+
+proc writedht_FindNodeRequest*(stream: Stream, message: dht_FindNodeRequest) =
+    if message.id != 0:
+        protoWriteInt32(stream, message.id, 1)
+    writeUnknownFields(stream, message)
+
+proc readdht_FindNodeRequest*(stream: Stream): dht_FindNodeRequest =
+    result = newdht_FindNodeRequest()
+    while not atEnd(stream):
+        let
+            tag = readTag(stream)
+            wireType = wireType(tag)
+        case fieldNumber(tag)
+        of 0:
+            raise newException(InvalidFieldNumberError, "Invalid field number: 0")
+        of 1:
+            expectWireType(wireType, WireType.Varint)
+            setid(result, protoReadInt32(stream))
+        else: readUnknownField(stream, result, tag)
+
+proc toJson*(message: dht_FindNodeRequest): JsonNode =
+    result = newJObject()
+    if message.id != 0:
+        result["id"] = %message.id
+
+proc parsedht_FindNodeRequest*(obj: JsonNode): dht_FindNodeRequest =
+    result = newdht_FindNodeRequest()
+    var node: JsonNode
+    if obj.kind != JObject:
+        raise newException(nimpb_json.ParseError, "object expected")
+    node = getJsonField(obj, "id", "id")
+    if node != nil and node.kind != JNull:
+        setid(result, parseInt[int32](node))
+
+proc serialize*(message: dht_FindNodeRequest): string =
+    let
+        ss = newStringStream()
+    writedht_FindNodeRequest(ss, message)
+    result = ss.data
+
+proc newdht_FindNodeRequest*(data: string): dht_FindNodeRequest =
+    let
+        ss = newStringStream(data)
+    result = readdht_FindNodeRequest(ss)
+
+proc newdht_FindNodeRequest*(data: seq[byte]): dht_FindNodeRequest =
+    let
+        ss = newStringStream(cast[string](data))
+    result = readdht_FindNodeRequest(ss)
+
+
 proc fullyQualifiedName*(T: typedesc[dht_PingResponse]): string = "dht.PingResponse"
 
 proc readdht_PingResponseImpl(stream: Stream): Message = readdht_PingResponse(stream)
@@ -206,5 +443,107 @@ proc newdht_PingResponse*(data: seq[byte]): dht_PingResponse =
     let
         ss = newStringStream(cast[string](data))
     result = readdht_PingResponse(ss)
+
+
+proc fullyQualifiedName*(T: typedesc[dht_FindNodeResponse]): string = "dht.FindNodeResponse"
+
+proc readdht_FindNodeResponseImpl(stream: Stream): Message = readdht_FindNodeResponse(stream)
+proc writedht_FindNodeResponseImpl(stream: Stream, msg: Message) = writedht_FindNodeResponse(stream, dht_FindNodeResponse(msg))
+proc toJsondht_FindNodeResponseImpl(msg: Message): JsonNode = toJson(dht_FindNodeResponse(msg))
+proc fromJsondht_FindNodeResponseImpl(node: JsonNode): Message = parsedht_FindNodeResponse(node)
+
+proc dht_FindNodeResponseProcs*(): MessageProcs =
+    result.readImpl = readdht_FindNodeResponseImpl
+    result.writeImpl = writedht_FindNodeResponseImpl
+    result.toJsonImpl = toJsondht_FindNodeResponseImpl
+    result.fromJsonImpl = fromJsondht_FindNodeResponseImpl
+
+proc newdht_FindNodeResponse*(): dht_FindNodeResponse =
+    new(result)
+    initMessage(result[])
+    result.procs = dht_FindNodeResponseProcs()
+    result.contacts = @[]
+
+proc clearcontacts*(message: dht_FindNodeResponse) =
+    message.contacts = @[]
+    clearFields(message, [1])
+
+proc hascontacts*(message: dht_FindNodeResponse): bool =
+    result = hasField(message, 1) or (len(message.contacts) > 0)
+
+proc setcontacts*(message: dht_FindNodeResponse, value: seq[dht_Contact]) =
+    message.contacts = value
+    setField(message, 1)
+
+proc addcontacts*(message: dht_FindNodeResponse, value: dht_Contact) =
+    add(message.contacts, value)
+
+proc contacts*(message: dht_FindNodeResponse): seq[dht_Contact] {.inline.} =
+    message.contacts
+
+proc `contacts=`*(message: dht_FindNodeResponse, value: seq[dht_Contact]) {.inline.} =
+    setcontacts(message, value)
+
+proc sizeOfdht_FindNodeResponse*(message: dht_FindNodeResponse): uint64 =
+    for value in message.contacts:
+        result = result + sizeOfTag(1, WireType.LengthDelimited)
+        result = result + sizeOfLengthDelimited(sizeOfdht_Contact(value))
+    result = result + sizeOfUnknownFields(message)
+
+proc writedht_FindNodeResponse*(stream: Stream, message: dht_FindNodeResponse) =
+    for value in message.contacts:
+        writeMessage(stream, value, 1)
+    writeUnknownFields(stream, message)
+
+proc readdht_FindNodeResponse*(stream: Stream): dht_FindNodeResponse =
+    result = newdht_FindNodeResponse()
+    while not atEnd(stream):
+        let
+            tag = readTag(stream)
+            wireType = wireType(tag)
+        case fieldNumber(tag)
+        of 0:
+            raise newException(InvalidFieldNumberError, "Invalid field number: 0")
+        of 1:
+            expectWireType(wireType, WireType.LengthDelimited)
+            let data = readLengthDelimited(stream)
+            addcontacts(result, newdht_Contact(data))
+        else: readUnknownField(stream, result, tag)
+
+proc toJson*(message: dht_FindNodeResponse): JsonNode =
+    result = newJObject()
+    if len(message.contacts) > 0:
+        let arr = newJArray()
+        for value in message.contacts:
+            add(arr, toJson(value))
+        result["contacts"] = arr
+
+proc parsedht_FindNodeResponse*(obj: JsonNode): dht_FindNodeResponse =
+    result = newdht_FindNodeResponse()
+    var node: JsonNode
+    if obj.kind != JObject:
+        raise newException(nimpb_json.ParseError, "object expected")
+    node = getJsonField(obj, "contacts", "contacts")
+    if node != nil and node.kind != JNull:
+        if node.kind != JArray:
+            raise newException(ValueError, "not an array")
+        for value in node:
+            addcontacts(result, parsedht_Contact(value))
+
+proc serialize*(message: dht_FindNodeResponse): string =
+    let
+        ss = newStringStream()
+    writedht_FindNodeResponse(ss, message)
+    result = ss.data
+
+proc newdht_FindNodeResponse*(data: string): dht_FindNodeResponse =
+    let
+        ss = newStringStream(data)
+    result = readdht_FindNodeResponse(ss)
+
+proc newdht_FindNodeResponse*(data: seq[byte]): dht_FindNodeResponse =
+    let
+        ss = newStringStream(cast[string](data))
+    result = readdht_FindNodeResponse(ss)
 
 

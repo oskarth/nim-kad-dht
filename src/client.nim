@@ -35,3 +35,8 @@ try:
 except Exception as e:
   echo(&"error: {e.msg}")
 
+
+# HERE ATM
+# TODO: FindNode request to server
+# TODO: make src/node.nim that has a client and server, and allows client part to send in background while getting requests - i.e. alice and bob sleep 5s, then both ping each other every 2 seconds
+# TODO: Then, start to hook up to kademlia

@@ -16,11 +16,17 @@ type
     DHTService* = ref DHTServiceObj
     DHTServiceObj* = object of RootObj
         PingImpl*: proc (service: DHTService, param: dht_PingRequest): Future[dht_PingResponse] {.gcsafe, closure.}
+        FindNodeImpl*: proc (service: DHTService, param: dht_FindNodeRequest): Future[dht_FindNodeResponse] {.gcsafe, closure.}
 
 proc Ping*(service: DHTService, param: dht_PingRequest): Future[dht_PingResponse] {.async.} =
     if service.PingImpl == nil:
         raise newTwirpError(TwirpUnimplemented, "Ping is not implemented")
     result = await service.PingImpl(service, param)
+
+proc FindNode*(service: DHTService, param: dht_FindNodeRequest): Future[dht_FindNodeResponse] {.async.} =
+    if service.FindNodeImpl == nil:
+        raise newTwirpError(TwirpUnimplemented, "FindNode is not implemented")
+    result = await service.FindNodeImpl(service, param)
 
 proc newDHTService*(): DHTService =
     new(result)
@@ -38,6 +44,21 @@ proc handleRequest*(service: DHTService, req: Request): Future[nimtwirp.Response
             inputMsg = parsedht_PingRequest(node)
 
         let outputMsg = await Ping(service, inputMsg)
+
+        if contentType == "application/protobuf":
+            return nimtwirp.newResponse(serialize(outputMsg))
+        elif contentType == "application/json":
+            return nimtwirp.newResponse(toJson(outputMsg))
+    elif methodName == "FindNode":
+        var inputMsg: dht_FindNodeRequest
+
+        if contentType == "application/protobuf":
+            inputMsg = newdht_FindNodeRequest(req.body)
+        elif contentType == "application/json":
+            let node = parseJson(req.body)
+            inputMsg = parsedht_FindNodeRequest(node)
+
+        let outputMsg = await FindNode(service, inputMsg)
 
         if contentType == "application/protobuf":
             return nimtwirp.newResponse(serialize(outputMsg))
@@ -74,4 +95,18 @@ proc Ping*(client: DHTServiceClient, req: dht_PingRequest): dht_PingResponse =
         result = newdht_PingResponse(resp.body)
     of ClientKind.Json:
         result = parsedht_PingResponse(parseJson(resp.body))
+
+proc FindNode*(client: DHTServiceClient, req: dht_FindNodeRequest): dht_FindNodeResponse =
+    var body: string
+    case client.kind
+    of ClientKind.Protobuf:
+        body = serialize(req)
+    of ClientKind.Json:
+        body = $toJson(req)
+    let resp = request(client, DHTServicePrefix, "FindNode", body)
+    case client.kind
+    of ClientKind.Protobuf:
+        result = newdht_FindNodeResponse(resp.body)
+    of ClientKind.Json:
+        result = parsedht_FindNodeResponse(parseJson(resp.body))
 

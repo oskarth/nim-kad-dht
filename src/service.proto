@@ -4,6 +4,24 @@ package dht;
 
 service DHTService {
   rpc Ping(PingRequest) returns (PingResponse);
+  rpc FindNode(FindNodeRequest) returns (FindNodeResponse);
+  // TODO: Fill out with other RPCs
+}
+
+// TODO: Dedicated NodeID type
+
+message Contact {
+  int32 id = 1;
+  string address = 2;
+}
+
+// XXX: This is array[b, int], but should probably be bytes
+message FindNodeRequest {
+  int32 id = 1;
+}
+
+message FindNodeResponse {
+  repeated Contact contacts = 1;
 }
 
 message PingRequest {
