@@ -1,4 +1,4 @@
-#import random
+import random
 #import math
 import algorithm
 import asyncdispatch
@@ -34,7 +34,6 @@ type
     id: NodeID
     kbuckets: KBuckets
 
-# XXX: How does random seed work? Seem to get same number here every run
 #proc genRandomNodeID(): NodeID =
 #  for i in 0..<result.len:
 #    result[i] = rand(1)
@@ -282,6 +281,12 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   #
   # Still not clear on why we abort after k contacts, maybe evident in refreshBucket step
 
+# TODO: refreshBucket - take random element and do find node on own id here
+proc refreshBucket(node: ref Node, idx: int, bucket: KBucket) =
+  var nameStr = "[" & $node.name & "] "
+  echo(nameStr, "Refreshing bucket ", idx)
+  echo(nameStr, "Random node from bucket ", bucket[rand(bucket.len-1)])
+  # TODO: Dial this and ask it to find itself, do some soul searching
 
 # XXX: Refreshes _all_ buckets further away than "closest neighbor" - who is that?
 # "occupied bucket with the lowest index", so isn't that just one? the "rightmost"/furthest-away one?
@@ -294,11 +299,14 @@ proc refreshMostDistantBucket(node: ref Node) =
     var bucket = node.kbuckets[node.kbuckets.len-1-i]
     if bucket.len != 0:
       echo(nameStr, "Last bucket we want to refresh with random member ", bucket)
-      # TODO: refreshBucket - take random element and do find node on own id here
+      refreshBucket(node, node.kbuckets.len-1-i, bucket)
       break
 
 # Setup existing network
 #------------------------------------------------------------------------------
+
+# RANDOMIZE
+randomize()
 
 # Setup existing network first, then Alice joins
 # Global view for testing, assumes all possible nodes exist
