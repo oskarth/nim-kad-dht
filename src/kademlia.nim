@@ -282,16 +282,23 @@ proc iterativeFindNode(node: ref Node, targetid: NodeID, networkTable: Table[Nod
   # Still not clear on why we abort after k contacts, maybe evident in refreshBucket step
 
 # TODO: refreshBucket - take random element and do find node on own id here
-proc refreshBucket(node: ref Node, idx: int, bucket: KBucket) =
+proc refreshBucket(node: ref Node, idx: int, bucket: KBucket, networkTable: Table[NodeID, ref Node]) {.async.} =
   var nameStr = "[" & $node.name & "] "
   echo(nameStr, "Refreshing bucket ", idx)
-  echo(nameStr, "Random node from bucket ", bucket[rand(bucket.len-1)])
-  # TODO: Dial this and ask it to find itself, do some soul searching
+  var c = bucket[rand(bucket.len-1)]
+  echo(namestr, "Mock dialing random contact from bucket ", c)
+  if not networkTable.hasKey(c.id):
+    # XXX: Should we pick a new one here? Also disconnect logic, etc
+    echo(namestr, "Can't find network address for contact ", c, " aborting")
+    break
+  var resp = await mockFindNode(networkTable[c.id], c.id)
+  echo(namestr, "Response ", resp)
+  # TODO: Use response to update contact...
 
 # XXX: Refreshes _all_ buckets further away than "closest neighbor" - who is that?
 # "occupied bucket with the lowest index", so isn't that just one? the "rightmost"/furthest-away one?
 # Refreshing means picking a random ID from bucket and doing a node search for that ID
-proc refreshMostDistantBucket(node: ref Node) =
+proc refreshMostDistantBucket(node: ref Node, networkTable: Table[NodeID, ref Node]) =
   var nameStr = "[" & $node.name & "] "
   echo(nameStr, "Refreshing most distant bucket")
   # Find most distant bucket
@@ -299,7 +306,7 @@ proc refreshMostDistantBucket(node: ref Node) =
     var bucket = node.kbuckets[node.kbuckets.len-1-i]
     if bucket.len != 0:
       echo(nameStr, "Last bucket we want to refresh with random member ", bucket)
-      refreshBucket(node, node.kbuckets.len-1-i, bucket)
+      discard refreshBucket(node, node.kbuckets.len-1-i, bucket, networkTable)
       break
 
 # Setup existing network
@@ -329,7 +336,7 @@ AddContactsFromAll(bob, @[3, 5, 7, 8])
 var charlie = newNode("Charlie", genNodeIDByInt(3))
 AddContactsFromAll(charlie, @[1, 2, 6, 8, 12])
 
-# TODO: Dan
+# TODO: Dan, who is Dan? 0101?
 
 # Join logic
 #------------------------------------------------------------------------------
@@ -362,4 +369,4 @@ discard iterativeFindNode(alice, alice.id, networkTable)
 
 # TODO: 4. Refresh buckets further away
 # "it refreshes all buckets further away than its closest neighbor, which will be in the occupied bucket with the lowest index."
-refreshMostDistantBucket(alice)
+refreshMostDistantBucket(alice, networkTable)
