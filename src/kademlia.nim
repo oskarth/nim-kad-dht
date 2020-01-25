@@ -290,10 +290,12 @@ proc refreshBucket(node: ref Node, idx: int, bucket: KBucket, networkTable: Tabl
   if not networkTable.hasKey(c.id):
     # XXX: Should we pick a new one here? Also disconnect logic, etc
     echo(namestr, "Can't find network address for contact ", c, " aborting")
-    break
-  var resp = await mockFindNode(networkTable[c.id], c.id)
-  echo(namestr, "Response ", resp)
-  # TODO: Use response to update contact...
+  else:
+    var resp = await mockFindNode(networkTable[c.id], c.id)
+    echo(namestr, "Response ", resp)
+    for c in resp:
+      AddContact(node, c)
+    echo node
 
 # XXX: Refreshes _all_ buckets further away than "closest neighbor" - who is that?
 # "occupied bucket with the lowest index", so isn't that just one? the "rightmost"/furthest-away one?
