@@ -1,4 +1,7 @@
-all: client server
+all: client server kademlia
+
+kademlia: src/kademlia.nim
+	nim c -o:bin/kademlia src/kademlia.nim
 
 client: src/client.nim src/service_pb.nim src/service_twirp.nim
 	nim c -o:bin/client src/client.nim
