@@ -39,6 +39,7 @@ It also ties into ideas such as:
 
 ```
 nimble intall https://github.com/oswjk/nimtwirp
+nimble install https://github.com/status-im/nim-libp2p
 ```
 
 ## Running

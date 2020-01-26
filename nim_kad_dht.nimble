@@ -13,3 +13,4 @@ bin           = @["node"]
 
 requires "nim >= 0.20.0"
 requires "nimtwirp >= 0.1.0"
+#requires "nim-libp2p"

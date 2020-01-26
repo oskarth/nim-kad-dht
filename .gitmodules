@@ -1,3 +1,0 @@
-[submodule "nim-libp2p"]
-	path = nim-libp2p
-	url = https://github.com/status-im/nim-libp2p
