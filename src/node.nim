@@ -5,6 +5,8 @@ import threadpool
 import nimtwirp/nimtwirp
 import nimtwirp/errors
 
+import server
+
 import os
 
 import strformat
@@ -31,37 +33,10 @@ else:
   echo("unknown name")
   quit(1)
 
-# XXX: Client or server? Should be server
-proc PingImpl(service: DHTService, pingReq: dht_PingRequest): Future[dht_PingResponse] {.async.} =
-    if pingReq.id <= 0:
-        raise newTwirpError(TwirpInvalidArgument, "Invalid request id!")
-
-    result = dht_PingResponse()
-    result.id = pingReq.id
-    echo("Got a ping, responding with a pong")
-
-var
-    server = newAsyncHttpServer()
-    service {.threadvar.}: DHTService
-
-service = newDHTService()
-service.PingImpl = PingImpl
-
-proc handler(req: Request) {.async.} =
-    # Each service will have a generated handleRequest() proc which takes the
-    # service object and a asynchttpserver.Request object and returns a
-    # Future[nimtwirp.Response].
-    echo("handler received req")
-    var fut = handleRequest(service, req)
-    yield fut
-    if fut.failed:
-        await respond(req, nimtwirp.newResponse(fut.readError()))
-    else:
-        await respond(req, fut.read())
-
-echo "Starting server"
-asyncCheck server.serve(Port(servePort), handler)
-echo "Server running in background"
+echo "[node] Starting server"
+asyncCheck server.startServer(servePort)
+#asyncCheck server.serve(Port(servePort), server.handler)
+echo "[node] Server running in background"
 
 runForever()
 
