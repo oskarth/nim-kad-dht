@@ -4,12 +4,13 @@ import asyncdispatch
 import nimtwirp/nimtwirp
 import nimtwirp/errors
 
+import os
+
 import strformat
 import strutils
 
 import service_pb
 import service_twirp
-
 
 proc PingImpl(service: DHTService, pingReq: dht_PingRequest): Future[dht_PingResponse] {.async.} =
     if pingReq.id <= 0:
@@ -39,4 +40,17 @@ proc handler(req: Request) {.async.} =
 
 echo "Starting server"
 
-waitFor server.serve(Port(8000), handler)
+# Run server in background
+discard server.serve(Port(8080), handler)
+
+# In background, also do loop
+proc timeLoop() {.async.} =
+  while true:
+    echo("TODO: Ping here")
+    os.sleep(1000)
+
+discard timeLoop()
+
+echo("Leaving procss hanging")
+
+runForever()
