@@ -1,3 +1,4 @@
+
 when not(compileOption("threads")):
   {.fatal: "Please, compile this program with the --threads:on option!".}
 
@@ -74,7 +75,12 @@ proc readAndPrint(p: PingProto) {.async, gcsafe.} =
   while true:
     while p.connected:
       # echo &"{p.id} -> "
-      echo cast[string](await p.conn.readLp())
+      # Incoming messages here
+      # TODO: Parse as protobuf ping
+      var incoming = cast[string](await p.conn.readLp())
+      echo incoming
+      if incoming == "ping":
+        await p.conn.writeLp("pong")
     await sleepAsync(100.millis)
 
 proc dialPeer(p: PingProto, address: string) {.async, gcsafe.} =
@@ -136,7 +142,9 @@ proc writeAndPrint(p: PingProto) {.async, gcsafe.} =
       quit(0)
     else:
       if p.connected:
-        await p.conn.writeLp(line)
+        # TODO: Make this a ping protobuf
+        # Send in loop? As opposed to in REPL
+        await p.conn.writeLp("ping")
       else:
         try:
           if line.startsWith("/") and "ipfs" in line:
@@ -255,3 +263,6 @@ when isMainModule:
 # Lets start with simple ping problem
 # Want two launch two clients
 # Then one client sends 'ping' and other respond with 'pong'
+#
+#
+# TODO: I want logging from libp2p LOG_LEVEL=trace
