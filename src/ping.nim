@@ -184,28 +184,34 @@ proc serveThread(customData: CustomData) {.async.} =
   var localAddress = DefaultAddr
   # TODO: Here we want to take in argument, so we have alice and bob and autopopulate this
   # /ip4/127.0.0.1/tcp/55505, portInc?
-  while true:
-    echo &"Type an address to bind to or Enter to use the default {DefaultAddr}"
-    let a = await transp.readLine()
-    try:
-      if a.len > 0:
-        peerInfo.addrs.add(Multiaddress.init(a))
-        break
 
-      peerInfo.addrs.add(Multiaddress.init(localAddress))
-      echo("peerInfo addr: ", $peerInfo.addrs)
-      break
-    except:
-      echo "invalid address"
-      localAddress = DefaultAddr
-      continue
+  # Use local address determined by node name by default
+  peerInfo.addrs.add(Multiaddress.init(localAddress))
+  echo("peerInfo addr: ", $peerInfo.addrs)
 
+#  while true:
+#    echo &"Type an address to bind to or Enter to use the default {DefaultAddr}"
+#    let a = await transp.readLine()
+#    try:
+#      if a.len > 0:
+#        peerInfo.addrs.add(Multiaddress.init(a))
+#        break
+#
+#      peerInfo.addrs.add(Multiaddress.init(localAddress))
+#      echo("peerInfo addr: ", $peerInfo.addrs)
+#      break
+#    except:
+#      echo "invalid address"
+#      localAddress = DefaultAddr
+#      continue
+#
   proc createMplex(conn: Connection): Muxer =
     result = newMplex(conn)
 
   var mplexProvider = newMuxerProvider(createMplex, MplexCodec)
   var transports = @[Transport(newTransport(TcpTransport))]
   var muxers = [(MplexCodec, mplexProvider)].toTable()
+  # XXX: Use this, can we set this?
   var identify = newIdentify(peerInfo)
   var secureManagers = [(SecioCodec, Secure(newSecio(seckey)))].toTable()
   var switch = newSwitch(peerInfo,
