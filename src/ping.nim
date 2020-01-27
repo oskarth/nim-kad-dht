@@ -22,8 +22,23 @@ import libp2p/[switch,
                muxers/mplex/mplex,
                muxers/mplex/types]
  
+# Parse args
+if paramCount() < 1:
+  echo("need one argument")
+  quit(1)
+var name = paramStr(1)
+var port: int
+if name == "alice":
+  port = 50000
+elif name == "bob":
+  port = 50001
+else:
+  echo("unknown name")
+  quit(1)
+
 const PingCodec = "/nim-libp2p/ping/1.0.0"
-const DefaultAddr = "/ip4/127.0.0.1/tcp/55505"
+
+var DefaultAddr = "/ip4/127.0.0.1/tcp/" & $port
 
 const Help = """
   Commands: /[?|hep|connect|disconnect|exit]
