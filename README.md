@@ -17,6 +17,12 @@ It also ties into ideas such as:
 - Service oriented p2p architecture
 - Accounting for resources
 
+## Desired user story
+
+- Start a node and join the network
+- Store something and have it be replicated n times
+- Go offline, then go back online and have it still be available
+
 ## TODO
 
 - x Protobuf RPC scaffold
