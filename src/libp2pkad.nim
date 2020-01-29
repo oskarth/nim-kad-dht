@@ -17,10 +17,19 @@ import libp2p/[switch,
                protocols/secure/secio,
                protocols/secure/secure]
 
-const TestCodec = "/test/proto/1.0.0" # custom protocol string
+const KadCodec = "/test/kademlia/1.0.0" # custom protocol string
 
 type
   TestProto = ref object of LPProtocol # declare a custom protocol
+
+# Returns XOR distance as PeerID
+# Assuming these are of equal length, b
+# Which result type do we want here?
+proc xor_distance(a, b: PeerID): PeerID =
+  var data: seq[byte]
+  for i in 0..<a.data.len:
+    data.add(a.data[i] xor b.data[i])
+  return PeerID(data: data)
 
 method init(p: TestProto) {.gcsafe.} =
   # handle incoming connections in closure
@@ -29,7 +38,7 @@ method init(p: TestProto) {.gcsafe.} =
     await conn.writeLp("Hello!")
     await conn.close()
 
-  p.codec = TestCodec # init proto with the correct string id
+  p.codec = KadCodec # init proto with the correct string id
   p.handler = handle # set proto handler
 
 proc createSwitch(ma: MultiAddress): (Switch, PeerInfo) =
@@ -77,7 +86,10 @@ proc main() {.async, gcsafe.} =
 
   (switch2, peerInfo2) = createSwitch(ma2) # create node 2
   var switch2Fut = await switch2.start() # start second node
-  let conn = await switch2.dial(switch1.peerInfo, TestCodec) # dial the first node
+  let conn = await switch2.dial(switch1.peerInfo, KadCodec) # dial the first node
+
+  # XOR distance between two peers
+  echo("*** xor_distance ", xor_distance(peerInfo1.peerId, peerInfo2.peerId))
 
   await conn.writeLp("Hello!") # writeLp send a length prefixed buffer over the wire
   # readLp reads length prefixed bytes and returns a buffer without the prefix
