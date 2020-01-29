@@ -19,8 +19,17 @@ import libp2p/[switch,
 
 const KadCodec = "/test/kademlia/1.0.0" # custom protocol string
 
+const k = 2 # maximum number of peers in bucket, test setting, should be 20
+const b = 160 # size of bits of keys used to identify nodes and data
+
+# Should parameterize by b, size of bits of keys (Peer ID dependent?)
 type
-  KadProto = ref object of LPProtocol # declare a custom protocol
+  KadPeer = ref object of RootObj
+    peerInfo: PeerInfo
+  KBucket = array[k, KadPeer] # should be k length
+  KadProto* = ref object of LPProtocol # declare a custom protocol
+    peerInfo: PeerInfo # this peer's info, should be b length
+    Kbuckets: array[b, KBucket] # should be b length
 
 # Returns XOR distance as PeerID
 # Assuming these are of equal length, b
@@ -40,6 +49,12 @@ method init(p: KadProto) {.gcsafe.} =
 
   p.codec = KadCodec # init proto with the correct string id
   p.handler = handle # set proto handler
+
+# TODO: Setup kbuckets, fix byte to bit to know which contact
+method addContact(p: KadProto, contact: PeerInfo) {.gcsafe.} =
+  echo ("addContact ", contact)
+  # Find which_kbucket(self, c.id)
+  #p.kbuckets[0].add(c)
 
 proc createSwitch(ma: MultiAddress): (Switch, PeerInfo) =
   ## Helper to create a swith
