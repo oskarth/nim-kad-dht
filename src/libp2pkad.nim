@@ -20,7 +20,7 @@ import libp2p/[switch,
 const KadCodec = "/test/kademlia/1.0.0" # custom protocol string
 
 type
-  TestProto = ref object of LPProtocol # declare a custom protocol
+  KadProto = ref object of LPProtocol # declare a custom protocol
 
 # Returns XOR distance as PeerID
 # Assuming these are of equal length, b
@@ -31,7 +31,7 @@ proc xor_distance(a, b: PeerID): PeerID =
     data.add(a.data[i] xor b.data[i])
   return PeerID(data: data)
 
-method init(p: TestProto) {.gcsafe.} =
+method init(p: KadProto) {.gcsafe.} =
   # handle incoming connections in closure
   proc handle(conn: Connection, proto: string) {.async, gcsafe.} =
     echo "Got from remote - ", cast[string](await conn.readLp())
@@ -79,9 +79,9 @@ proc main() {.async, gcsafe.} =
   (switch1, peerInfo1) = createSwitch(ma1) # create node 1
 
   # setup the custom proto
-  let testProto = new TestProto
-  testProto.init() # run it's init method to perform any required initialization
-  switch1.mount(testProto) # mount the proto
+  let kadProto = new KadProto
+  kadProto.init() # run it's init method to perform any required initialization
+  switch1.mount(kadProto) # mount the proto
   var switch1Fut = await switch1.start() # start the node
 
   (switch2, peerInfo2) = createSwitch(ma2) # create node 2
