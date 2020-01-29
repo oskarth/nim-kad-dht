@@ -40,13 +40,14 @@ proc xor_distance(a, b: PeerID): PeerID =
     data.add(a.data[i] xor b.data[i])
   return PeerID(data: data)
 
-method init(p: KadProto) {.gcsafe.} =
+method init(p: KadProto, peerInfo: PeerInfo) {.gcsafe.} =
   # handle incoming connections in closure
   proc handle(conn: Connection, proto: string) {.async, gcsafe.} =
     echo "Got from remote - ", cast[string](await conn.readLp())
     await conn.writeLp("Hello!")
     await conn.close()
 
+  p.peerInfo = peerInfo
   p.codec = KadCodec # init proto with the correct string id
   p.handler = handle # set proto handler
 
@@ -95,7 +96,8 @@ proc main() {.async, gcsafe.} =
 
   # setup the custom proto
   let kadProto = new KadProto
-  kadProto.init() # run it's init method to perform any required initialization
+  # XXX: peerInfo1 centric here
+  kadProto.init(peerInfo1) # run it's init method to perform any required initialization
   switch1.mount(kadProto) # mount the proto
   var switch1Fut = await switch1.start() # start the node
 
