@@ -54,6 +54,46 @@ proc `$`(k: KBuckets): string =
   if skipped.len != 0:
     result &= "empty buckets" & skipped
 
+# Helper functions
+
+# XXX: Do we need multiaddr or PeerInfo here?
+# XXX: Dedupe with above
+proc newKadSwitch(): Switch =
+  ## Helper to create a swith
+
+  let seckey = PrivateKey.random(RSA) # use a random key for peer id
+  var peerInfo = PeerInfo.init(seckey) # create a peer id and assign
+  var ma = Multiaddress.init("/ip4/0.0.0.0/tcp/0")
+
+  peerInfo.addrs.add(ma) # set this peer's multiaddresses (can be any number)
+
+  let identify = newIdentify(peerInfo) # create the identify proto
+
+  proc createMplex(conn: Connection): Muxer =
+    # helper proc to create multiplexers,
+    # use this to perform any custom setup up,
+    # such as adjusting timeout or anything else
+    # that the muxer requires
+    result = newMplex(conn)
+
+  let mplexProvider = newMuxerProvider(createMplex, MplexCodec) # create multiplexer
+  let transports = @[Transport(newTransport(TcpTransport))] # add all transports (tcp only for now, but can be anything in the future)
+  let muxers = {MplexCodec: mplexProvider}.toTable() # add all muxers
+  let secureManagers = {SecioCodec: Secure(newSecio(seckey))}.toTable() # setup the secio and any other secure provider
+
+  # Add kadProto field to Switch type as optional? This is how pubsub works
+  # let kadProto = KadProto newKad(peerInfo)
+
+  let switch = newSwitch(peerInfo,
+                         transports,
+                         identify,
+                         muxers,
+                         secureManagers)
+
+proc generateNodes(n: Natural): seq[Switch] =
+  for i in 0..<n:
+   result.add(newKadSwitch())
+
 # Returns XOR distance as PeerID
 # Assuming these are of equal length, b
 # Which result type do we want here?
@@ -137,7 +177,7 @@ proc createSwitch(ma: MultiAddress): (Switch, PeerInfo) =
                          secureManagers)
   result = (switch, peerInfo)
 
-proc main() {.async, gcsafe.} =
+proc mainManual() {.async, gcsafe.} =
   let ma1: MultiAddress = Multiaddress.init("/ip4/0.0.0.0/tcp/0")
   let ma2: MultiAddress = Multiaddress.init("/ip4/0.0.0.0/tcp/0")
 
@@ -159,7 +199,8 @@ proc main() {.async, gcsafe.} =
   # XOR distance between two peers
   echo("*** xor_distance ", xor_distance(peerInfo1.peerId, peerInfo2.peerId))
 
-  # TODO: HERE ATM: Print contacts table per bucket
+  # XXX: I want to add 3rd node to 2nd
+  # XXX: Does this belong to switch or protocol?
   kadProto.addContact(peerInfo2)
 
   echo("Printing kbuckets")
@@ -172,4 +213,17 @@ proc main() {.async, gcsafe.} =
   await allFutures(switch1.stop(), switch2.stop()) # close connections and shutdown all transports
   await allFutures(switch1Fut & switch2Fut) # wait for all transports to shutdown
 
-waitFor(main())
+proc mainGen() {.async, gcsafe.} =
+  echo("NYI")
+  # TODO: Let's generate 10 nodes
+  # TODO: HERE ATM - FIND NODE
+  # TODO: Add many contacts
+  # TODO: Pluggable shorter id too
+  #
+  # If we generate N nodes there, what do we have?
+  # same multiaddress (essentially)
+  # what about peer info and peer id?
+  # Lets try this separately from above
+  #generateNodes(n: Natural): seq[Switch]
+
+waitFor(mainGen())
