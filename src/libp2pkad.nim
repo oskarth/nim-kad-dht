@@ -36,6 +36,24 @@ type
     peerInfo: PeerInfo # this peer's info, should be b length
     kbuckets: KBuckets # should be b length
 
+proc `$`(k: KadPeer): string =
+  return "<KadPeer>" & k.peerInfo.peerId.pretty
+
+proc `$`(k: KBuckets): string =
+  var skipped: string
+  var bucket: Kbucket
+  for i in 0..<k.len:
+    bucket = k[i]
+    if bucket.len != 0:
+      if skipped.len != 0:
+        result &= "empty buckets" & skipped & "\n"
+        skipped = ""
+      result &= $i & ": " & $k[i] & "\n"
+    else:
+      skipped = skipped & " " & $i
+  if skipped.len != 0:
+    result &= "empty buckets" & skipped
+
 # Returns XOR distance as PeerID
 # Assuming these are of equal length, b
 # Which result type do we want here?
@@ -143,6 +161,9 @@ proc main() {.async, gcsafe.} =
 
   # TODO: HERE ATM: Print contacts table per bucket
   kadProto.addContact(peerInfo2)
+
+  echo("Printing kbuckets")
+  echo kadProto.kbuckets
 
   await conn.writeLp("Hello!") # writeLp send a length prefixed buffer over the wire
   # readLp reads length prefixed bytes and returns a buffer without the prefix
